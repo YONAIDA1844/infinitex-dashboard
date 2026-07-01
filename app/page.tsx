@@ -1,52 +1,92 @@
 export default function Home() {
-  return (
-    <main style={{minHeight: '100vh', backgroundColor: '#0f2418', color: 'white', fontFamily: 'sans-serif'}}>
+  const agentes = [
+    { num: 1, nombre: 'Orquestador Central', area: 'Hub / Router', estado: 'pendiente' },
+    { num: 2, nombre: 'Agente Bodega', area: 'Logistica - Bodega Anker', estado: 'pendiente' },
+    { num: 3, nombre: 'Agente Ventas', area: 'Logistica - Ventas', estado: 'pendiente' },
+    { num: 4, nombre: 'Agente Despacho', area: 'Logistica - Despacho', estado: 'pendiente' },
+    { num: 5, nombre: 'Agente Clientes', area: 'Logistica - Clientes', estado: 'pendiente' },
+    { num: 6, nombre: 'Agente Trafico', area: 'Logistica - Produccion', estado: 'desarrollo' },
+    { num: 7, nombre: 'Agente Administracion', area: 'Logistica - Admin', estado: 'pendiente' },
+  ];
 
-      <header style={{backgroundColor: '#14532d', padding: '16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-        <div style={{display: 'flex', alignItems: 'center', gap: '12px'}}>
-          <div style={{width: '40px', height: '40px', backgroundColor: '#22c55e', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '18px', color: '#14532d'}}>IX</div>
-          <div>
-            <div style={{fontWeight: 'bold', fontSize: '18px', color: '#22c55e'}}>InfiniteX</div>
-            <div style={{fontSize: '12px', color: '#86efac'}}>Sicoben Ediciones</div>
+  const estadoConfig: Record<string, { label: string; color: string; bg: string }> = {
+    desarrollo: { label: 'En Desarrollo', color: '#58a6ff', bg: 'rgba(88,166,255,0.1)' },
+    pendiente:  { label: 'Pendiente',     color: '#8b949e', bg: 'rgba(139,148,158,0.08)' },
+    activo:     { label: 'Operativo',     color: '#3fb950', bg: 'rgba(63,185,80,0.1)' },
+  };
+
+  return (
+    <main style={{minHeight: '100vh', backgroundColor: '#0d1117', color: '#e6edf3', fontFamily: "'Segoe UI', system-ui, sans-serif"}}>
+
+      {/* HEADER */}
+      <header style={{backgroundColor: '#161b22', borderBottom: '1px solid #21262d', padding: '18px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
+          <div style={{letterSpacing: '4px', fontSize: '20px', fontWeight: '700'}}>
+            <span style={{color: '#58a6ff'}}>INFINITE</span>
+            <span style={{color: '#ffffff'}}> X</span>
           </div>
+          <div style={{width: '1px', height: '24px', backgroundColor: '#21262d'}}></div>
+          <span style={{color: '#8b949e', fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase'}}>Sistema de Agentes Logisticos</span>
         </div>
-        <div style={{fontSize: '14px', color: '#86efac'}}>Agente de Trafico</div>
+        <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+          <span style={{width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3fb950', display: 'inline-block'}}></span>
+          <span style={{color: '#3fb950', fontSize: '12px', letterSpacing: '1px'}}>Sistema Activo</span>
+        </div>
       </header>
 
-      <section style={{textAlign: 'center', padding: '60px 32px'}}>
-        <h1 style={{fontSize: '36px', fontWeight: 'bold', color: '#22c55e', marginBottom: '16px'}}>
-          Agente de Trafico InfiniteX
-        </h1>
-        <p style={{fontSize: '18px', color: '#86efac', maxWidth: '600px', margin: '0 auto 32px'}}>
-          Sistema de notificaciones automaticas para el equipo de produccion de Sicoben Ediciones Panama
-        </p>
-        <div style={{display: 'inline-block', backgroundColor: '#22c55e', color: '#14532d', padding: '12px 28px', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px'}}>
-          Panel de Control
+      {/* HERO */}
+      <section style={{padding: '48px 40px 32px'}}>
+        <p style={{color: '#8b949e', fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '12px'}}>Panel de Supervision</p>
+        <h1 style={{fontSize: '28px', fontWeight: '600', color: '#e6edf3', marginBottom: '8px'}}>InfiniteX Dashboard</h1>
+        <p style={{color: '#8b949e', fontSize: '14px'}}>7 agentes especializados — Sicoben Ediciones Panama</p>
+      </section>
+
+      {/* STATS BAR */}
+      <section style={{padding: '0 40px 40px', display: 'flex', gap: '16px', flexWrap: 'wrap'}}>
+        <div style={{backgroundColor: '#161b22', border: '1px solid #21262d', borderRadius: '8px', padding: '16px 24px', minWidth: '140px'}}>
+          <p style={{color: '#8b949e', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px'}}>Total Agentes</p>
+          <p style={{color: '#e6edf3', fontSize: '24px', fontWeight: '600'}}>7</p>
+        </div>
+        <div style={{backgroundColor: '#161b22', border: '1px solid #21262d', borderRadius: '8px', padding: '16px 24px', minWidth: '140px'}}>
+          <p style={{color: '#8b949e', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px'}}>En Desarrollo</p>
+          <p style={{color: '#58a6ff', fontSize: '24px', fontWeight: '600'}}>1</p>
+        </div>
+        <div style={{backgroundColor: '#161b22', border: '1px solid #21262d', borderRadius: '8px', padding: '16px 24px', minWidth: '140px'}}>
+          <p style={{color: '#8b949e', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px'}}>Pendientes</p>
+          <p style={{color: '#8b949e', fontSize: '24px', fontWeight: '600'}}>6</p>
+        </div>
+        <div style={{backgroundColor: '#161b22', border: '1px solid #21262d', borderRadius: '8px', padding: '16px 24px', minWidth: '140px'}}>
+          <p style={{color: '#8b949e', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px'}}>Operativos</p>
+          <p style={{color: '#3fb950', fontSize: '24px', fontWeight: '600'}}>0</p>
         </div>
       </section>
 
-      <section style={{display: 'flex', gap: '24px', padding: '0 32px 60px', flexWrap: 'wrap', justifyContent: 'center'}}>
-        <div style={{backgroundColor: '#14532d', borderRadius: '12px', padding: '28px', width: '280px', border: '1px solid #22c55e'}}>
-          <div style={{fontSize: '32px', marginBottom: '12px'}}>📦</div>
-          <h3 style={{color: '#22c55e', marginBottom: '8px', fontSize: '18px'}}>Proveedores Odoo</h3>
-          <p style={{color: '#86efac', fontSize: '14px', lineHeight: '1.6'}}>Monitoreo de ordenes de compra, facturas y entregas pendientes desde Odoo.</p>
-        </div>
-
-        <div style={{backgroundColor: '#14532d', borderRadius: '12px', padding: '28px', width: '280px', border: '1px solid #22c55e'}}>
-          <div style={{fontSize: '32px', marginBottom: '12px'}}>🤖</div>
-          <h3 style={{color: '#22c55e', marginBottom: '8px', fontSize: '18px'}}>Agente Notificador</h3>
-          <p style={{color: '#86efac', fontSize: '14px', lineHeight: '1.6'}}>Automatizacion de alertas via WhatsApp y Email para el equipo de produccion.</p>
-        </div>
-
-        <div style={{backgroundColor: '#14532d', borderRadius: '12px', padding: '28px', width: '280px', border: '1px solid #22c55e'}}>
-          <div style={{fontSize: '32px', marginBottom: '12px'}}>🔔</div>
-          <h3 style={{color: '#22c55e', marginBottom: '8px', fontSize: '18px'}}>Notificaciones</h3>
-          <p style={{color: '#86efac', fontSize: '14px', lineHeight: '1.6'}}>Historial de alertas enviadas y seguimiento de entregas criticas.</p>
+      {/* AGENTES GRID */}
+      <section style={{padding: '0 40px 48px'}}>
+        <p style={{color: '#8b949e', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', marginBottom: '20px', borderBottom: '1px solid #21262d', paddingBottom: '12px'}}>Agentes del Sistema</p>
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px'}}>
+          {agentes.map((agente) => {
+            const cfg = estadoConfig[agente.estado];
+            return (
+              <div key={agente.num} style={{backgroundColor: '#161b22', border: '1px solid #21262d', borderRadius: '8px', padding: '24px', position: 'relative', borderLeft: agente.estado === 'desarrollo' ? '3px solid #58a6ff' : '3px solid #21262d'}}>
+                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px'}}>
+                  <span style={{color: '#8b949e', fontSize: '11px', letterSpacing: '1px'}}>AGENTE #{agente.num}</span>
+                  <span style={{backgroundColor: cfg.bg, color: cfg.color, fontSize: '11px', padding: '3px 10px', borderRadius: '12px', letterSpacing: '0.5px'}}>
+                    {cfg.label}
+                  </span>
+                </div>
+                <h3 style={{color: '#e6edf3', fontSize: '16px', fontWeight: '600', marginBottom: '6px'}}>{agente.nombre}</h3>
+                <p style={{color: '#8b949e', fontSize: '13px'}}>{agente.area}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 
-      <footer style={{backgroundColor: '#14532d', padding: '20px 32px', textAlign: 'center', color: '#86efac', fontSize: '13px'}}>
-        InfiniteX 2026 - Sicoben Ediciones Panama - KADI INTERNATIONAL S.A.
+      {/* FOOTER */}
+      <footer style={{backgroundColor: '#161b22', borderTop: '1px solid #21262d', padding: '20px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+        <span style={{color: '#8b949e', fontSize: '12px', letterSpacing: '1px'}}>INFINITE X — Sicoben Ediciones Panama</span>
+        <span style={{color: '#8b949e', fontSize: '12px'}}>KADI INTERNATIONAL S.A. © 2026</span>
       </footer>
 
     </main>
