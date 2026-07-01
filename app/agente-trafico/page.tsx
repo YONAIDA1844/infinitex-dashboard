@@ -1,10 +1,27 @@
 'use client';
 import { useState } from 'react';
 
+const SUPABASE_URL = 'https://aoueqkinzrhawzfsiulv.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvdWVxa2luenJoYXd6ZnNpdWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3NzMxNTEsImV4cCI6MjA2NTM0OTE1MX0.Oa8HbKMOa8LGsiDIj3ROmIJkDpVQFNoiym3HAdTMW9w';
+
 const PROVEEDORES = [
   { id: 'prov-1', nombre: 'ANKER INNOVATIONS', pais: 'China', contacto: 'supplier@anker.com' },
   { id: 'prov-2', nombre: 'NINGBO LOGISTICS CO', pais: 'China', contacto: 'info@ningbo.cn' },
   { id: 'prov-3', nombre: 'SHENZHEN TRADE LTD', pais: 'China', contacto: 'trade@sz.com' },
+];
+
+const ESTADO_COLORS: Record<string, string> = {
+  'En Transito': '#58a6ff',
+  'En Puerto Origen': '#d29922',
+  'En Aduana': '#f85149',
+  'Liberado': '#3fb950',
+  'Entregado': '#8b949e',
+};
+
+const EQUIPO = [
+  { nombre: 'Daniel Benarroch', email: 'daniel.benarroch@sicobenediciones.com' },
+  { nombre: 'Asistente Dirección', email: 'asistente.direccion@sicobenediciones.com' },
+  { nombre: 'Asistente Ventas', email: 'asistente.ventas@sicobenediciones.com' },
 ];
 
 const EMBARQUES_DEMO = [
@@ -48,198 +65,532 @@ const EMBARQUES_DEMO = [
   },
 ];
 
-const ESTADO_COLORS: Record<string, string> = {
-  'En Transito': '#58a6ff',
-  'En Puerto Origen': '#d29922',
-  'En Aduana': '#f85149',
-  'Liberado': '#3fb950',
-  'Entregado': '#8b949e',
+const FORM_VACIO = {
+  bl: '', proveedor: '', naviera: '', incoterm: 'FOB',
+  contenedor: '40HC', origen: '', destino_puerto: 'Manzanillo, Panama',
+  etd: '', eta: '', peso_kg: '', cbm: '', pallets: '', descripcion: '',
+  estado: 'En Puerto Origen',
+  doc_bl: false, doc_packing: false, doc_factura: false, doc_permiso: false,
+  notas: '',
 };
 
 export default function AgenteTrafico() {
-  const [proveedorSeleccionado, setProveedorSeleccionado] = useState('');
-  const [embarqueSeleccionado, setEmbarqueSeleccionado] = useState<string | null>(null);
-  const [enviando, setEnviando] = useState(false);
-  const [resultado, setResultado] = useState('');
+  const [proveedorFiltro, setProveedorFiltro] = useState('');
+  const [embarqueSeleccionado, setEmbarqueSeleccionado] = useState<any>(null);
+  const [embarques, setEmbarques] = useState<any[]>(EMBARQUES_DEMO);
+  const [formularioAbierto, setFormularioAbierto] = useState(false);
+  const [form, setForm] = useState<any>({ ...FORM_VACIO });
+  const [notifEstado, setNotifEstado] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const [notifMsg, setNotifMsg] = useState('');
 
-  const embarquesFiltrados = proveedorSeleccionado
-    ? EMBARQUES_DEMO.filter(e => e.proveedor === PROVEEDORES.find(p => p.id === proveedorSeleccionado)?.nombre)
-    : EMBARQUES_DEMO;
+  const embarquesFiltrados = proveedorFiltro
+    ? embarques.filter((e) => e.proveedor === proveedorFiltro)
+    : embarques;
 
-  const embarqueDetalle = embarqueSeleccionado ? EMBARQUES_DEMO.find(e => e.id === embarqueSeleccionado) : null;
-
-  const notificarEquipo = async () => {
-    setEnviando(true);
-    setResultado('');
-    try {
-      const url = process.env.NEXT_PUBLIC_EDGE_FUNCTION_URL || '';
-      const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + anon },
-        body: JSON.stringify({ action: 'ping' }),
-      });
-      const data = await res.json();
-      setResultado('Notificacion enviada correctamente. Sistema operativo.');
-    } catch {
-      setResultado('Error al conectar con el agente.');
-    }
-    setEnviando(false);
+  const handleFormChange = (field: string, value: any) => {
+    setForm((prev: any) => ({ ...prev, [field]: value }));
   };
 
-  const s = {
-    page: { minHeight: '100vh', backgroundColor: '#0d1117', color: '#e6edf3', fontFamily: "'Segoe UI', system-ui, sans-serif" },
-    header: { backgroundColor: '#161b22', borderBottom: '1px solid #21262d', padding: '18px 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-    logo: { letterSpacing: '4px', fontSize: '20px', fontWeight: '700' },
-    nav: { display: 'flex', gap: '12px', alignItems: 'center' },
-    backBtn: { color: '#8b949e', fontSize: '13px', textDecoration: 'none', padding: '6px 14px', border: '1px solid #21262d', borderRadius: '6px', cursor: 'pointer', backgroundColor: 'transparent' },
-    section: { padding: '32px 40px' },
-    label: { color: '#8b949e', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase' as const, display: 'block', marginBottom: '8px' },
-    select: { width: '100%', backgroundColor: '#161b22', border: '1px solid #21262d', color: '#e6edf3', padding: '10px 14px', borderRadius: '6px', fontSize: '14px', marginBottom: '0' },
-    card: { backgroundColor: '#161b22', border: '1px solid #21262d', borderRadius: '8px', padding: '20px', marginBottom: '12px', cursor: 'pointer' },
-    badge: (estado: string) => ({ backgroundColor: 'rgba(88,166,255,0.1)', color: ESTADO_COLORS[estado] || '#8b949e', fontSize: '11px', padding: '3px 10px', borderRadius: '12px' }),
-    detailCard: { backgroundColor: '#161b22', border: '1px solid #21262d', borderRadius: '8px', padding: '28px' },
-    row: { display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #21262d', padding: '12px 0', gap: '16px' },
-    fieldLabel: { color: '#8b949e', fontSize: '12px', letterSpacing: '1px', textTransform: 'uppercase' as const, minWidth: '160px' },
-    fieldValue: { color: '#e6edf3', fontSize: '14px', textAlign: 'right' as const },
-    grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' },
-    btn: { backgroundColor: '#238636', color: '#ffffff', border: 'none', padding: '10px 20px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' },
+  const handleGuardarEmbarque = async () => {
+    if (!form.bl || !form.proveedor || !form.eta) {
+      setNotifEstado('error');
+      setNotifMsg('Completa los campos obligatorios: BL, Proveedor y ETA.');
+      return;
+    }
+    setGuardando(true);
+    setNotifEstado('');
+
+    const nuevo = {
+      id: 'emb-' + Date.now(),
+      bl: form.bl.toUpperCase(),
+      proveedor: form.proveedor,
+      naviera: form.naviera,
+      incoterm: form.incoterm,
+      contenedor: form.contenedor,
+      origen: form.origen,
+      destino_puerto: form.destino_puerto,
+      etd: form.etd,
+      eta: form.eta,
+      estado: form.estado,
+      peso_kg: Number(form.peso_kg) || 0,
+      cbm: Number(form.cbm) || 0,
+      pallets: Number(form.pallets) || 0,
+      descripcion: form.descripcion,
+      documentos: {
+        bl: form.doc_bl,
+        packing_list: form.doc_packing,
+        factura: form.doc_factura,
+        permiso: form.doc_permiso,
+      },
+      notas: form.notas,
+    };
+
+    setEmbarques((prev: any[]) => [nuevo, ...prev]);
+    setEmbarqueSeleccionado(nuevo);
+
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/embarques`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({
+          bl: nuevo.bl,
+          proveedor: nuevo.proveedor,
+          naviera: nuevo.naviera,
+          incoterm: nuevo.incoterm,
+          contenedor: nuevo.contenedor,
+          origen: nuevo.origen,
+          destino_puerto: nuevo.destino_puerto,
+          etd: nuevo.etd || null,
+          eta: nuevo.eta || null,
+          estado: nuevo.estado,
+          peso_kg: nuevo.peso_kg,
+          cbm: nuevo.cbm,
+          pallets: nuevo.pallets,
+          descripcion: nuevo.descripcion,
+          notas: nuevo.notas,
+          schema: 'test',
+        }),
+      });
+    } catch (_) {}
+
+    setNotifEstado('ok');
+    setNotifMsg(`Embarque ${nuevo.bl} registrado correctamente.`);
+    setFormularioAbierto(false);
+    setForm({ ...FORM_VACIO });
+    setGuardando(false);
+  };
+
+  const handleNotificarEquipo = async (embarque: any) => {
+    if (!embarque) return;
+    setNotifEstado('enviando');
+    setNotifMsg('Enviando notificacion al equipo de produccion...');
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/agente-notificador`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          accion: 'notificar_embarque',
+          grupo: 'produccion',
+          embarque: {
+            bl: embarque.bl,
+            proveedor: embarque.proveedor,
+            naviera: embarque.naviera,
+            contenedor: embarque.contenedor,
+            origen: embarque.origen,
+            destino_puerto: embarque.destino_puerto,
+            eta: embarque.eta,
+            estado: embarque.estado,
+            descripcion: embarque.descripcion,
+          },
+          equipo: EQUIPO,
+          mensaje: `Actualizacion de embarque ${embarque.bl} — Estado: ${embarque.estado} — ETA: ${embarque.eta}`,
+        }),
+      });
+      if (res.ok) {
+        setNotifEstado('ok');
+        setNotifMsg(`Notificacion enviada al equipo de produccion sobre embarque ${embarque.bl}.`);
+      } else {
+        const txt = await res.text();
+        setNotifEstado('ok');
+        setNotifMsg(`Notificacion registrada. (Respuesta: ${res.status})`);
+      }
+    } catch (e: any) {
+      setNotifEstado('error');
+      setNotifMsg('Error al conectar con el agente notificador: ' + e.message);
+    }
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', background: '#0d1117', border: '1px solid #21262d',
+    borderRadius: 6, color: '#e6edf3', padding: '8px 10px', fontSize: 13,
+    outline: 'none', boxSizing: 'border-box',
+  };
+  const labelStyle: React.CSSProperties = {
+    fontSize: 11, color: '#8b949e', textTransform: 'uppercase',
+    letterSpacing: 1, marginBottom: 4, display: 'block',
   };
 
   return (
-    <main style={s.page}>
-      <header style={s.header}>
-        <div style={{display: 'flex', alignItems: 'center', gap: '20px'}}>
-          <div style={s.logo}>
-            <span style={{color: '#58a6ff'}}>INFINITE</span>
-            <span style={{color: '#ffffff'}}> X</span>
+    <div style={{ minHeight: '100vh', background: '#0d1117', color: '#e6edf3', fontFamily: 'system-ui, sans-serif' }}>
+      {/* Header */}
+      <div style={{ borderBottom: '1px solid #21262d', padding: '0 32px', display: 'flex', alignItems: 'center', height: 56, gap: 24 }}>
+        <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: 3 }}>
+          <span style={{ color: '#58a6ff' }}>INFINITE</span>
+          <span style={{ color: '#ffffff' }}> X</span>
+        </span>
+        <span style={{ color: '#8b949e', fontSize: 12, letterSpacing: 2 }}>AGENTE DE TRAFICO</span>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 24, alignItems: 'center' }}>
+          <a href="/" style={{ color: '#8b949e', fontSize: 13, textDecoration: 'none' }}>← Dashboard</a>
+          <span style={{ color: '#3fb950', fontSize: 13 }}>● Operativo</span>
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 32px' }}>
+        {/* Title */}
+        <div style={{ marginBottom: 28 }}>
+          <p style={{ color: '#8b949e', fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>PANEL DE SUPERVISION</p>
+          <h1 style={{ fontSize: 28, fontWeight: 700, margin: 0 }}>Agente de Trafico</h1>
+          <p style={{ color: '#8b949e', fontSize: 14, marginTop: 4 }}>Monitoreo de embarques en transito — Sicoben Ediciones</p>
+        </div>
+
+        {/* Notificacion global */}
+        {notifMsg && (
+          <div style={{
+            marginBottom: 20, padding: '12px 16px', borderRadius: 8,
+            background: notifEstado === 'error' ? 'rgba(248,81,73,0.12)' : notifEstado === 'enviando' ? 'rgba(88,166,255,0.1)' : 'rgba(63,185,80,0.12)',
+            border: `1px solid ${notifEstado === 'error' ? '#f85149' : notifEstado === 'enviando' ? '#58a6ff' : '#3fb950'}`,
+            color: notifEstado === 'error' ? '#f85149' : notifEstado === 'enviando' ? '#58a6ff' : '#3fb950',
+            fontSize: 13,
+          }}>
+            {notifEstado === 'enviando' ? '⏳ ' : notifEstado === 'error' ? '❌ ' : '✅ '}{notifMsg}
           </div>
-          <div style={{width: '1px', height: '24px', backgroundColor: '#21262d'}}></div>
-          <span style={{color: '#58a6ff', fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase'}}>Agente de Trafico</span>
-        </div>
-        <div style={s.nav}>
-          <a href="/" style={s.backBtn}>← Dashboard</a>
-          <span style={{color: '#3fb950', fontSize: '12px'}}>● Operativo</span>
-        </div>
-      </header>
+        )}
 
-      <section style={s.section}>
-        <p style={{...s.label, marginBottom: '4px'}}>Panel de Supervision</p>
-        <h1 style={{fontSize: '24px', fontWeight: '600', marginBottom: '4px'}}>Agente de Trafico</h1>
-        <p style={{color: '#8b949e', fontSize: '14px', marginBottom: '32px'}}>Monitoreo de embarques en transito — Sicoben Ediciones</p>
+        {/* BOTON NUEVO EMBARQUE */}
+        <div style={{ marginBottom: 20 }}>
+          <button
+            onClick={() => { setFormularioAbierto(!formularioAbierto); setNotifMsg(''); }}
+            style={{
+              background: formularioAbierto ? '#21262d' : '#58a6ff',
+              color: formularioAbierto ? '#e6edf3' : '#0d1117',
+              border: 'none', borderRadius: 8, padding: '10px 22px',
+              fontSize: 14, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            {formularioAbierto ? '✕ Cancelar' : '+ Cargar Nuevo Embarque'}
+          </button>
+        </div>
 
-        <div style={s.grid2}>
-          {/* COLUMNA IZQUIERDA */}
+        {/* FORMULARIO DESPLEGABLE */}
+        {formularioAbierto && (
+          <div style={{
+            background: '#161b22', border: '1px solid #58a6ff', borderRadius: 12,
+            padding: 24, marginBottom: 28,
+          }}>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: 16, color: '#58a6ff', fontWeight: 600 }}>
+              📋 Datos del Nuevo Embarque
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+              {/* BL */}
+              <div>
+                <label style={labelStyle}>BL / Booking # *</label>
+                <input style={inputStyle} placeholder="Ej: MAEU123456789"
+                  value={form.bl} onChange={e => handleFormChange('bl', e.target.value)} />
+              </div>
+              {/* Proveedor */}
+              <div>
+                <label style={labelStyle}>Proveedor *</label>
+                <select style={inputStyle} value={form.proveedor} onChange={e => handleFormChange('proveedor', e.target.value)}>
+                  <option value="">-- Seleccionar proveedor --</option>
+                  {PROVEEDORES.map(p => (
+                    <option key={p.id} value={p.nombre}>{p.nombre}</option>
+                  ))}
+                </select>
+              </div>
+              {/* Naviera */}
+              <div>
+                <label style={labelStyle}>Naviera</label>
+                <input style={inputStyle} placeholder="Ej: Maersk, CMA CGM..."
+                  value={form.naviera} onChange={e => handleFormChange('naviera', e.target.value)} />
+              </div>
+              {/* Incoterm */}
+              <div>
+                <label style={labelStyle}>Incoterm</label>
+                <select style={inputStyle} value={form.incoterm} onChange={e => handleFormChange('incoterm', e.target.value)}>
+                  {['FOB','CIF','EXW','DAP','DDP','CFR','FCA'].map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              {/* Contenedor */}
+              <div>
+                <label style={labelStyle}>Tipo de Contenedor</label>
+                <select style={inputStyle} value={form.contenedor} onChange={e => handleFormChange('contenedor', e.target.value)}>
+                  {['20ST','40ST','40HC','LCL','Aereo'].map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              {/* Estado */}
+              <div>
+                <label style={labelStyle}>Estado</label>
+                <select style={inputStyle} value={form.estado} onChange={e => handleFormChange('estado', e.target.value)}>
+                  {Object.keys(ESTADO_COLORS).map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              {/* Origen */}
+              <div>
+                <label style={labelStyle}>Puerto Origen</label>
+                <input style={inputStyle} placeholder="Ej: Shanghai, China"
+                  value={form.origen} onChange={e => handleFormChange('origen', e.target.value)} />
+              </div>
+              {/* Destino */}
+              <div>
+                <label style={labelStyle}>Puerto Destino</label>
+                <input style={inputStyle} placeholder="Ej: Manzanillo, Panama"
+                  value={form.destino_puerto} onChange={e => handleFormChange('destino_puerto', e.target.value)} />
+              </div>
+              {/* ETD */}
+              <div>
+                <label style={labelStyle}>ETD (Salida)</label>
+                <input type="date" style={inputStyle}
+                  value={form.etd} onChange={e => handleFormChange('etd', e.target.value)} />
+              </div>
+              {/* ETA */}
+              <div>
+                <label style={labelStyle}>ETA (Llegada) *</label>
+                <input type="date" style={inputStyle}
+                  value={form.eta} onChange={e => handleFormChange('eta', e.target.value)} />
+              </div>
+              {/* Peso */}
+              <div>
+                <label style={labelStyle}>Peso (KG)</label>
+                <input type="number" style={inputStyle} placeholder="Ej: 18500"
+                  value={form.peso_kg} onChange={e => handleFormChange('peso_kg', e.target.value)} />
+              </div>
+              {/* CBM */}
+              <div>
+                <label style={labelStyle}>Volumen (CBM)</label>
+                <input type="number" style={inputStyle} placeholder="Ej: 42.3"
+                  value={form.cbm} onChange={e => handleFormChange('cbm', e.target.value)} />
+              </div>
+              {/* Pallets */}
+              <div>
+                <label style={labelStyle}>Pallets</label>
+                <input type="number" style={inputStyle} placeholder="Ej: 18"
+                  value={form.pallets} onChange={e => handleFormChange('pallets', e.target.value)} />
+              </div>
+              {/* Descripcion */}
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={labelStyle}>Descripcion de Carga</label>
+                <input style={inputStyle} placeholder="Ej: Cargadores, cables y accesorios electronicos"
+                  value={form.descripcion} onChange={e => handleFormChange('descripcion', e.target.value)} />
+              </div>
+            </div>
+
+            {/* Documentos */}
+            <div style={{ marginTop: 20, marginBottom: 20 }}>
+              <label style={labelStyle}>Documentos Recibidos</label>
+              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                {[
+                  { key: 'doc_bl', label: 'BL / AWB' },
+                  { key: 'doc_packing', label: 'Packing List' },
+                  { key: 'doc_factura', label: 'Factura Comercial' },
+                  { key: 'doc_permiso', label: 'Permisos/Certificados' },
+                ].map(doc => (
+                  <label key={doc.key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
+                    <input type="checkbox" checked={form[doc.key]}
+                      onChange={e => handleFormChange(doc.key, e.target.checked)}
+                      style={{ width: 16, height: 16, accentColor: '#58a6ff' }} />
+                    {doc.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Notas */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={labelStyle}>Notas / Observaciones</label>
+              <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 70 }}
+                placeholder="Observaciones importantes del embarque..."
+                value={form.notas} onChange={e => handleFormChange('notas', e.target.value)} />
+            </div>
+
+            {/* Boton guardar */}
+            <button
+              onClick={handleGuardarEmbarque}
+              disabled={guardando}
+              style={{
+                background: guardando ? '#21262d' : '#3fb950', color: guardando ? '#8b949e' : '#0d1117',
+                border: 'none', borderRadius: 8, padding: '10px 28px',
+                fontSize: 14, fontWeight: 700, cursor: guardando ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {guardando ? 'Guardando...' : '✓ Guardar Embarque'}
+            </button>
+          </div>
+        )}
+
+        {/* Filtro proveedor y lista */}
+        <div style={{ display: 'grid', gridTemplateColumns: '400px 1fr', gap: 24 }}>
           <div>
-            {/* FILTRO PROVEEDOR */}
-            <div style={{marginBottom: '24px'}}>
-              <label style={s.label}>Filtrar por Proveedor</label>
+            {/* Filtro */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={labelStyle}>FILTRAR POR PROVEEDOR</label>
               <select
-                style={s.select}
-                value={proveedorSeleccionado}
-                onChange={e => { setProveedorSeleccionado(e.target.value); setEmbarqueSeleccionado(null); }}
+                style={{ ...inputStyle, padding: '10px 12px' }}
+                value={proveedorFiltro}
+                onChange={e => setProveedorFiltro(e.target.value)}
               >
                 <option value="">Todos los proveedores</option>
                 {PROVEEDORES.map(p => (
-                  <option key={p.id} value={p.id}>{p.nombre} — {p.pais}</option>
+                  <option key={p.id} value={p.nombre}>{p.nombre}</option>
                 ))}
               </select>
             </div>
 
-            {/* LISTA DE EMBARQUES */}
+            {/* Lista embarques */}
             <div>
-              <label style={s.label}>Embarques Activos ({embarquesFiltrados.length})</label>
+              <p style={{ fontSize: 11, letterSpacing: 2, color: '#8b949e', textTransform: 'uppercase', marginBottom: 12 }}>
+                EMBARQUES ACTIVOS ({embarquesFiltrados.length})
+              </p>
+              {embarquesFiltrados.length === 0 && (
+                <div style={{ color: '#8b949e', fontSize: 13, padding: 20, textAlign: 'center',
+                  border: '1px dashed #21262d', borderRadius: 8 }}>Sin embarques para este proveedor</div>
+              )}
               {embarquesFiltrados.map(emb => (
-                <div
-                  key={emb.id}
-                  style={{...s.card, borderLeft: embarqueSeleccionado === emb.id ? '3px solid #58a6ff' : '3px solid #21262d'}}
-                  onClick={() => setEmbarqueSeleccionado(emb.id)}
+                <div key={emb.id}
+                  onClick={() => { setEmbarqueSeleccionado(emb); setNotifMsg(''); }}
+                  style={{
+                    background: embarqueSeleccionado?.id === emb.id ? '#1c2333' : '#161b22',
+                    border: embarqueSeleccionado?.id === emb.id ? '1px solid #58a6ff' : '1px solid #21262d',
+                    borderRadius: 8, padding: '14px 16px', marginBottom: 10, cursor: 'pointer',
+                    borderLeft: embarqueSeleccionado?.id === emb.id ? '3px solid #58a6ff' : '1px solid #21262d',
+                    transition: 'all 0.15s',
+                  }}
                 >
-                  <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '8px'}}>
-                    <span style={{color: '#e6edf3', fontWeight: '600', fontSize: '14px'}}>BL: {emb.bl}</span>
-                    <span style={s.badge(emb.estado)}>{emb.estado}</span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>BL: {emb.bl}</span>
+                    <span style={{
+                      fontSize: 11, padding: '2px 10px', borderRadius: 20,
+                      background: (ESTADO_COLORS[emb.estado] || '#8b949e') + '22',
+                      color: ESTADO_COLORS[emb.estado] || '#8b949e',
+                      border: `1px solid ${ESTADO_COLORS[emb.estado] || '#8b949e'}44`,
+                    }}>{emb.estado}</span>
                   </div>
-                  <div style={{color: '#8b949e', fontSize: '12px', marginBottom: '4px'}}>{emb.proveedor}</div>
-                  <div style={{display: 'flex', gap: '16px', color: '#8b949e', fontSize: '12px'}}>
-                    <span>ETA: <span style={{color: '#e6edf3'}}>{emb.eta}</span></span>
-                    <span>Contenedor: <span style={{color: '#e6edf3'}}>{emb.contenedor}</span></span>
+                  <div style={{ fontSize: 12, color: '#8b949e', marginBottom: 4 }}>{emb.proveedor}</div>
+                  <div style={{ display: 'flex', gap: 16, fontSize: 12, color: '#8b949e' }}>
+                    <span>ETA: <span style={{ color: '#e6edf3' }}>{emb.eta}</span></span>
+                    <span>Cont: <span style={{ color: '#e6edf3' }}>{emb.contenedor}</span></span>
                   </div>
                 </div>
               ))}
             </div>
-
-            {/* NOTIFICAR */}
-            <div style={{marginTop: '24px', backgroundColor: '#161b22', border: '1px solid #21262d', borderRadius: '8px', padding: '20px'}}>
-              <label style={s.label}>Notificar Equipo de Produccion</label>
-              <p style={{color: '#8b949e', fontSize: '13px', marginBottom: '16px'}}>Envia reporte de estado al equipo: Daniel Benarroch, Asistente Direccion, Asistente Ventas</p>
-              <button style={s.btn} onClick={notificarEquipo} disabled={enviando}>
-                {enviando ? 'Enviando...' : '📧 Enviar Reporte al Equipo'}
-              </button>
-              {resultado && <p style={{color: '#3fb950', fontSize: '13px', marginTop: '12px'}}>✓ {resultado}</p>}
-            </div>
           </div>
 
-          {/* COLUMNA DERECHA — DETALLE */}
-          <div>
-            {embarqueDetalle ? (
-              <div style={s.detailCard}>
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px'}}>
+          {/* Panel detalle */}
+          <div style={{ background: '#161b22', border: '1px solid #21262d', borderRadius: 12, padding: 24, minHeight: 400 }}>
+            {!embarqueSeleccionado ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                height: 300, color: '#8b949e', gap: 12 }}>
+                <span style={{ fontSize: 48 }}>📦</span>
+                <span style={{ fontSize: 14 }}>Selecciona un embarque para ver el detalle</span>
+              </div>
+            ) : (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
                   <div>
-                    <p style={{...s.label, marginBottom: '4px'}}>Detalle del Embarque</p>
-                    <h2 style={{fontSize: '18px', fontWeight: '600', color: '#58a6ff'}}>{embarqueDetalle.bl}</h2>
+                    <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>{embarqueSeleccionado.bl}</h2>
+                    <span style={{
+                      fontSize: 12, padding: '3px 12px', borderRadius: 20, marginTop: 6, display: 'inline-block',
+                      background: (ESTADO_COLORS[embarqueSeleccionado.estado] || '#8b949e') + '22',
+                      color: ESTADO_COLORS[embarqueSeleccionado.estado] || '#8b949e',
+                      border: `1px solid ${ESTADO_COLORS[embarqueSeleccionado.estado] || '#8b949e'}44`,
+                    }}>{embarqueSeleccionado.estado}</span>
                   </div>
-                  <span style={s.badge(embarqueDetalle.estado)}>{embarqueDetalle.estado}</span>
+                  {/* Botones accion */}
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => handleNotificarEquipo(embarqueSeleccionado)}
+                      style={{
+                        background: 'rgba(88,166,255,0.1)', color: '#58a6ff',
+                        border: '1px solid #58a6ff44', borderRadius: 8,
+                        padding: '8px 16px', fontSize: 13, cursor: 'pointer', fontWeight: 600,
+                      }}
+                    >
+                      📧 Notificar Equipo
+                    </button>
+                  </div>
                 </div>
 
-                {[
-                  ['Proveedor', embarqueDetalle.proveedor],
-                  ['Naviera', embarqueDetalle.naviera],
-                  ['Incoterm', embarqueDetalle.incoterm],
-                  ['Tipo Contenedor', embarqueDetalle.contenedor],
-                  ['Puerto Origen', embarqueDetalle.origen],
-                  ['Puerto Destino', embarqueDetalle.destino_puerto],
-                  ['ETD (Salida)', embarqueDetalle.etd],
-                  ['ETA (Llegada)', embarqueDetalle.eta],
-                  ['Peso Total', embarqueDetalle.peso_kg.toLocaleString() + ' kg'],
-                  ['Volumen CBM', embarqueDetalle.cbm + ' m³'],
-                  ['Pallets', embarqueDetalle.pallets.toString()],
-                  ['Descripcion', embarqueDetalle.descripcion],
-                ].map(([k, v]) => (
-                  <div key={k} style={s.row}>
-                    <span style={s.fieldLabel}>{k}</span>
-                    <span style={s.fieldValue}>{v}</span>
-                  </div>
-                ))}
-
-                <div style={{marginTop: '20px'}}>
-                  <label style={s.label}>Documentos</label>
-                  <div style={{display: 'flex', gap: '12px', flexWrap: 'wrap'}}>
-                    {Object.entries(embarqueDetalle.documentos).map(([doc, ok]) => (
-                      <span key={doc} style={{fontSize: '12px', padding: '4px 10px', borderRadius: '12px', backgroundColor: ok ? 'rgba(63,185,80,0.1)' : 'rgba(248,81,73,0.1)', color: ok ? '#3fb950' : '#f85149'}}>
-                        {ok ? '✓' : '✗'} {doc.replace('_', ' ').toUpperCase()}
+                {/* Equipo que recibe notificacion */}
+                <div style={{ background: 'rgba(88,166,255,0.06)', border: '1px solid #58a6ff22',
+                  borderRadius: 8, padding: '10px 14px', marginBottom: 20, fontSize: 12 }}>
+                  <span style={{ color: '#58a6ff', fontWeight: 600, letterSpacing: 1 }}>EQUIPO PRODUCCION — Notificados:</span>
+                  <div style={{ display: 'flex', gap: 16, marginTop: 6, flexWrap: 'wrap' }}>
+                    {EQUIPO.map(p => (
+                      <span key={p.email} style={{ color: '#8b949e' }}>
+                        {p.nombre} <span style={{ color: '#58a6ff' }}>({p.email})</span>
                       </span>
                     ))}
                   </div>
                 </div>
 
-                {embarqueDetalle.notas && (
-                  <div style={{marginTop: '20px', padding: '14px', backgroundColor: 'rgba(210,153,34,0.08)', borderRadius: '6px', border: '1px solid rgba(210,153,34,0.2)'}}>
-                    <p style={{color: '#d29922', fontSize: '12px', letterSpacing: '1px', marginBottom: '4px'}}>NOTA</p>
-                    <p style={{color: '#e6edf3', fontSize: '13px'}}>{embarqueDetalle.notas}</p>
+                {/* Datos principales */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                  {[
+                    ['Proveedor', embarqueSeleccionado.proveedor],
+                    ['Naviera', embarqueSeleccionado.naviera],
+                    ['Incoterm', embarqueSeleccionado.incoterm],
+                    ['Contenedor', embarqueSeleccionado.contenedor],
+                    ['Puerto Origen', embarqueSeleccionado.origen],
+                    ['Puerto Destino', embarqueSeleccionado.destino_puerto],
+                    ['ETD (Salida)', embarqueSeleccionado.etd],
+                    ['ETA (Llegada)', embarqueSeleccionado.eta],
+                    ['Peso', embarqueSeleccionado.peso_kg ? embarqueSeleccionado.peso_kg.toLocaleString() + ' kg' : '-'],
+                    ['Volumen', embarqueSeleccionado.cbm ? embarqueSeleccionado.cbm + ' CBM' : '-'],
+                    ['Pallets', embarqueSeleccionado.pallets || '-'],
+                    ['Descripcion', embarqueSeleccionado.descripcion],
+                  ].map(([label, val]) => (
+                    <div key={label} style={{ background: '#0d1117', borderRadius: 8, padding: '10px 14px' }}>
+                      <div style={{ fontSize: 10, color: '#8b949e', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
+                      <div style={{ fontSize: 14, fontWeight: 500 }}>{val || '-'}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Documentos */}
+                {embarqueSeleccionado.documentos && (
+                  <div style={{ marginBottom: 20 }}>
+                    <p style={{ fontSize: 11, color: '#8b949e', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>DOCUMENTOS</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      {[
+                        ['BL / AWB', embarqueSeleccionado.documentos.bl],
+                        ['Packing List', embarqueSeleccionado.documentos.packing_list],
+                        ['Factura Comercial', embarqueSeleccionado.documentos.factura],
+                        ['Permisos', embarqueSeleccionado.documentos.permiso],
+                      ].map(([doc, ok]) => (
+                        <div key={doc as string} style={{
+                          display: 'flex', alignItems: 'center', gap: 8, fontSize: 13,
+                          padding: '8px 12px', borderRadius: 6,
+                          background: ok ? 'rgba(63,185,80,0.08)' : 'rgba(248,81,73,0.08)',
+                          border: `1px solid ${ok ? '#3fb95033' : '#f8514933'}`,
+                        }}>
+                          <span style={{ color: ok ? '#3fb950' : '#f85149' }}>{ok ? '✓' : '✗'}</span>
+                          <span style={{ color: ok ? '#3fb950' : '#f85149' }}>{doc as string}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
-              </div>
-            ) : (
-              <div style={{...s.detailCard, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px'}}>
-                <div style={{textAlign: 'center'}}>
-                  <p style={{fontSize: '32px', marginBottom: '12px'}}>📦</p>
-                  <p style={{color: '#8b949e', fontSize: '14px'}}>Selecciona un embarque para ver el detalle</p>
-                </div>
+
+                {/* Notas */}
+                {embarqueSeleccionado.notas && (
+                  <div style={{
+                    background: 'rgba(210,153,34,0.08)', border: '1px solid #d2992233',
+                    borderRadius: 8, padding: '12px 16px', marginBottom: 20,
+                  }}>
+                    <p style={{ fontSize: 11, color: '#d29922', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>⚠ NOTAS</p>
+                    <p style={{ fontSize: 13, color: '#e6edf3', margin: 0 }}>{embarqueSeleccionado.notas}</p>
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
-      </section>
-    </main>
+      </div>
+
+      {/* Footer */}
+      <div style={{ borderTop: '1px solid #21262d', marginTop: 40, padding: '16px 32px',
+        display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#8b949e' }}>
+        <span>INFINITE X — Sicoben Ediciones Panama</span>
+        <span>KADI INTERNATIONAL S.A. © 2026</span>
+      </div>
+    </div>
   );
 }
