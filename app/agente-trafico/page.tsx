@@ -90,10 +90,18 @@ const FORM_VACIO = {
 };
 
 export default function AgenteTrafico() {
+  const FORM_PROVEEDOR_VACIO = {
+    nombre: '', pais: 'China', contacto: '', email: '', whatsapp: '', tipo: 'fabricante', notas: '',
+  };
+
   const [proveedorFiltro, setProveedorFiltro] = useState('');
   const [embarqueSeleccionado, setEmbarqueSeleccionado] = useState<any>(null);
   const [embarques, setEmbarques] = useState<any[]>(EMBARQUES_DEMO);
   const [proveedores, setProveedores] = useState<any[]>([]);
+  const [panelProveedoresAbierto, setPanelProveedoresAbierto] = useState(false);
+  const [formProveedorAbierto, setFormProveedorAbierto] = useState(false);
+  const [formProveedor, setFormProveedor] = useState<any>({ ...FORM_PROVEEDOR_VACIO });
+  const [guardandoProveedor, setGuardandoProveedor] = useState(false);
   const [formularioAbierto, setFormularioAbierto] = useState(false);
   const [form, setForm] = useState<any>({ ...FORM_VACIO });
   const [notifEstado, setNotifEstado] = useState('');
@@ -103,11 +111,11 @@ export default function AgenteTrafico() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch(`${SUPABASE_URL}/rest/v1/proveedores?select=id,nombre,pais&activo=eq.true&order=nombre`, {
+    fetch(`${SUPABASE_URL}/rest/v1/proveedores?select=id,nombre,pais,contacto,email,whatsapp,tipo,notas&activo=eq.true&order=nombre`, {
       headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
     })
       .then(r => r.json())
-      .then(data => { if (Array.isArray(data) && data.length > 0) setProveedores(data); })
+      .then(data => { if (Array.isArray(data)) setProveedores(data); })
       .catch(() => {});
   }, []);
 
@@ -197,6 +205,42 @@ export default function AgenteTrafico() {
     }
     setImportando(false);
     ev.target.value = '';
+  }
+
+  async function handleGuardarProveedor() {
+    if (!formProveedor.nombre || !formProveedor.pais || !formProveedor.contacto) {
+      setNotifEstado('error');
+      setNotifMsg('Completa los campos obligatorios: Nombre, País y Contacto.');
+      return;
+    }
+    setGuardandoProveedor(true);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/proveedores`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Prefer': 'return=representation',
+        },
+        body: JSON.stringify({ ...formProveedor, activo: true }),
+      });
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        setProveedores((prev: any[]) => [...prev, data[0]].sort((a, b) => a.nombre.localeCompare(b.nombre)));
+        setNotifEstado('ok');
+        setNotifMsg(`Proveedor "${data[0].nombre}" agregado correctamente.`);
+      } else {
+        setNotifEstado('error');
+        setNotifMsg('Error al guardar el proveedor. Intenta de nuevo.');
+      }
+    } catch (e: any) {
+      setNotifEstado('error');
+      setNotifMsg('Error de conexión: ' + e.message);
+    }
+    setGuardandoProveedor(false);
+    setFormProveedorAbierto(false);
+    setFormProveedor({ ...FORM_PROVEEDOR_VACIO });
   }
 
   const handleFormChange = (field: string, value: any) => {
@@ -401,7 +445,165 @@ export default function AgenteTrafico() {
             {importando ? 'Importando…' : '↑ Importar Excel'}
           </button>
           <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={handleImportar} />
+          <button
+            onClick={() => { setPanelProveedoresAbierto(!panelProveedoresAbierto); setNotifMsg(''); }}
+            style={{
+              background: panelProveedoresAbierto ? '#21262d' : 'rgba(167,139,250,0.12)',
+              color: panelProveedoresAbierto ? '#e6edf3' : '#a78bfa',
+              border: `1px solid ${panelProveedoresAbierto ? '#21262d' : '#a78bfa44'}`,
+              borderRadius: 8, padding: '10px 18px', fontSize: 13, cursor: 'pointer',
+            }}
+          >
+            🏭 Gestionar Proveedores ({proveedores.length})
+          </button>
         </div>
+
+        {/* PANEL DE GESTIÓN DE PROVEEDORES */}
+        {panelProveedoresAbierto && (
+          <div style={{
+            background: '#161b22', border: '1px solid #a78bfa55', borderRadius: 12,
+            padding: 24, marginBottom: 28,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h3 style={{ margin: 0, fontSize: 16, color: '#a78bfa', fontWeight: 600 }}>
+                🏭 Gestión de Proveedores
+              </h3>
+              <button
+                onClick={() => { setFormProveedorAbierto(!formProveedorAbierto); setFormProveedor({ ...FORM_PROVEEDOR_VACIO }); }}
+                style={{
+                  background: formProveedorAbierto ? '#21262d' : 'rgba(167,139,250,0.15)',
+                  color: '#a78bfa', border: '1px solid #a78bfa44',
+                  borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer', fontWeight: 600,
+                }}
+              >
+                {formProveedorAbierto ? '✕ Cancelar' : '+ Agregar Proveedor'}
+              </button>
+            </div>
+
+            {/* Formulario agregar proveedor */}
+            {formProveedorAbierto && (
+              <div style={{
+                background: '#0d1117', border: '1px solid #a78bfa33',
+                borderRadius: 10, padding: 20, marginBottom: 20,
+              }}>
+                <p style={{ fontSize: 11, color: '#a78bfa', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 16 }}>
+                  DATOS DEL NUEVO PROVEEDOR
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
+                  <div>
+                    <label style={labelStyle}>Nombre / Empresa *</label>
+                    <input style={inputStyle} placeholder="Ej: ANKER INNOVATIONS"
+                      value={formProveedor.nombre}
+                      onChange={e => setFormProveedor((p: any) => ({ ...p, nombre: e.target.value.toUpperCase() }))} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>País *</label>
+                    <input style={inputStyle} placeholder="Ej: China"
+                      value={formProveedor.pais}
+                      onChange={e => setFormProveedor((p: any) => ({ ...p, pais: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Tipo</label>
+                    <select style={inputStyle} value={formProveedor.tipo}
+                      onChange={e => setFormProveedor((p: any) => ({ ...p, tipo: e.target.value }))}>
+                      <option value="fabricante">Fabricante</option>
+                      <option value="agente_carga">Agente de Carga</option>
+                      <option value="distribuidor">Distribuidor</option>
+                      <option value="otro">Otro</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Nombre de Contacto *</label>
+                    <input style={inputStyle} placeholder="Ej: Li Wei"
+                      value={formProveedor.contacto}
+                      onChange={e => setFormProveedor((p: any) => ({ ...p, contacto: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Email</label>
+                    <input style={inputStyle} placeholder="contacto@empresa.com"
+                      value={formProveedor.email}
+                      onChange={e => setFormProveedor((p: any) => ({ ...p, email: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>WhatsApp</label>
+                    <input style={inputStyle} placeholder="+86 755 8888 0001"
+                      value={formProveedor.whatsapp}
+                      onChange={e => setFormProveedor((p: any) => ({ ...p, whatsapp: e.target.value }))} />
+                  </div>
+                  <div style={{ gridColumn: 'span 3' }}>
+                    <label style={labelStyle}>Notas</label>
+                    <input style={inputStyle} placeholder="Observaciones sobre el proveedor..."
+                      value={formProveedor.notas}
+                      onChange={e => setFormProveedor((p: any) => ({ ...p, notas: e.target.value }))} />
+                  </div>
+                </div>
+                <button
+                  onClick={handleGuardarProveedor}
+                  disabled={guardandoProveedor}
+                  style={{
+                    marginTop: 16, background: guardandoProveedor ? '#21262d' : '#a78bfa',
+                    color: guardandoProveedor ? '#8b949e' : '#0d1117',
+                    border: 'none', borderRadius: 8, padding: '10px 28px',
+                    fontSize: 14, fontWeight: 700, cursor: guardandoProveedor ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {guardandoProveedor ? 'Guardando...' : '✓ Guardar Proveedor'}
+                </button>
+              </div>
+            )}
+
+            {/* Tabla de proveedores */}
+            {proveedores.length === 0 ? (
+              <div style={{ color: '#8b949e', fontSize: 13, padding: 20, textAlign: 'center',
+                border: '1px dashed #21262d', borderRadius: 8 }}>
+                No hay proveedores registrados. Agrega el primero con el botón de arriba.
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #21262d' }}>
+                      {['Nombre / Empresa', 'País', 'Tipo', 'Contacto', 'Email', 'WhatsApp', 'Notas'].map(h => (
+                        <th key={h} style={{
+                          padding: '8px 12px', textAlign: 'left', fontSize: 10,
+                          color: '#8b949e', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600,
+                        }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {proveedores.map((p: any, i: number) => (
+                      <tr key={p.id} style={{
+                        borderBottom: '1px solid #21262d11',
+                        background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
+                      }}>
+                        <td style={{ padding: '10px 12px', fontWeight: 600, color: '#e6edf3' }}>{p.nombre}</td>
+                        <td style={{ padding: '10px 12px', color: '#8b949e' }}>{p.pais}</td>
+                        <td style={{ padding: '10px 12px' }}>
+                          <span style={{
+                            fontSize: 11, padding: '2px 8px', borderRadius: 20,
+                            background: p.tipo === 'fabricante' ? 'rgba(88,166,255,0.12)' : 'rgba(63,185,80,0.12)',
+                            color: p.tipo === 'fabricante' ? '#58a6ff' : '#3fb950',
+                            border: `1px solid ${p.tipo === 'fabricante' ? '#58a6ff33' : '#3fb95033'}`,
+                          }}>
+                            {p.tipo === 'fabricante' ? 'Fabricante' : p.tipo === 'agente_carga' ? 'Ag. Carga' : p.tipo === 'distribuidor' ? 'Distribuidor' : p.tipo}
+                          </span>
+                        </td>
+                        <td style={{ padding: '10px 12px', color: '#e6edf3' }}>{p.contacto || '-'}</td>
+                        <td style={{ padding: '10px 12px', color: '#58a6ff' }}>
+                          {p.email ? <a href={`mailto:${p.email}`} style={{ color: '#58a6ff', textDecoration: 'none' }}>{p.email}</a> : '-'}
+                        </td>
+                        <td style={{ padding: '10px 12px', color: '#3fb950' }}>{p.whatsapp || '-'}</td>
+                        <td style={{ padding: '10px 12px', color: '#8b949e', maxWidth: 200,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.notas || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* FORMULARIO DESPLEGABLE */}
         {formularioAbierto && (
