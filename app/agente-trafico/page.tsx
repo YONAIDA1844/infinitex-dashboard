@@ -1,14 +1,23 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import * as XLSX from 'xlsx';
 
 const SUPABASE_URL = 'https://aoueqkinzrhawzfsiulv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvdWVxa2luenJoYXd6ZnNpdWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk3NzMxNTEsImV4cCI6MjA2NTM0OTE1MX0.Oa8HbKMOa8LGsiDIj3ROmIJkDpVQFNoiym3HAdTMW9w';
 
-const PROVEEDORES = [
-  { id: 'prov-1', nombre: 'ANKER INNOVATIONS', pais: 'China', contacto: 'supplier@anker.com' },
-  { id: 'prov-2', nombre: 'NINGBO LOGISTICS CO', pais: 'China', contacto: 'info@ningbo.cn' },
-  { id: 'prov-3', nombre: 'SHENZHEN TRADE LTD', pais: 'China', contacto: 'trade@sz.com' },
-];
+function excelDateToISO(val: unknown): string {
+  if (!val) return '';
+  if (typeof val === 'number') {
+    const date = XLSX.SSF.parse_date_code(val);
+    return `${date.y}-${String(date.m).padStart(2,'0')}-${String(date.d).padStart(2,'0')}`;
+  }
+  if (typeof val === 'string') {
+    const p = val.split('/');
+    if (p.length === 3) return `${p[2]}-${p[1].padStart(2,'0')}-${p[0].padStart(2,'0')}`;
+    return val;
+  }
+  return '';
+}
 
 const ESTADO_COLORS: Record<string, string> = {
   'En cotización':                  '#a78bfa',
@@ -84,15 +93,111 @@ export default function AgenteTrafico() {
   const [proveedorFiltro, setProveedorFiltro] = useState('');
   const [embarqueSeleccionado, setEmbarqueSeleccionado] = useState<any>(null);
   const [embarques, setEmbarques] = useState<any[]>(EMBARQUES_DEMO);
+  const [proveedores, setProveedores] = useState<any[]>([]);
   const [formularioAbierto, setFormularioAbierto] = useState(false);
   const [form, setForm] = useState<any>({ ...FORM_VACIO });
   const [notifEstado, setNotifEstado] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [notifMsg, setNotifMsg] = useState('');
+  const [importando, setImportando] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch(`${SUPABASE_URL}/rest/v1/proveedores?select=id,nombre,pais&activo=eq.true&order=nombre`, {
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+    })
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data) && data.length > 0) setProveedores(data); })
+      .catch(() => {});
+  }, []);
 
   const embarquesFiltrados = proveedorFiltro
     ? embarques.filter((e) => e.proveedor === proveedorFiltro)
     : embarques;
+
+  // Lista combinada: BD + los que solo existen en embarques locales
+  const listaProveedores = proveedores.length > 0 ? proveedores : [];
+  const proveedoresExtra = [...new Set(embarques.map((e: any) => e.proveedor).filter(Boolean))]
+    .filter(n => !listaProveedores.find((p: any) => p.nombre === n));
+
+  function handleExportar() {
+    const rows = embarques.map((e: any) => ({
+      'BL / Booking':    e.bl,
+      'Estado':          e.estado,
+      'Proveedor':       e.proveedor,
+      'Naviera':         e.naviera,
+      'Contenedor':      e.contenedor,
+      'Puerto Origen':   e.origen,
+      'Puerto Destino':  e.destino_puerto,
+      'ETD (Salida)':    e.etd,
+      'ETA (Llegada)':   e.eta,
+      'Peso KG':         e.peso_kg,
+      'CBM':             e.cbm,
+      'Pallets':         e.pallets,
+      'Descripcion':     e.descripcion,
+      'Notas':           e.notas,
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Embarques');
+    XLSX.writeFile(wb, `InfiniteX_Embarques_${new Date().toISOString().slice(0,10)}.xlsx`);
+  }
+
+  async function handleImportar(ev: React.ChangeEvent<HTMLInputElement>) {
+    const file = ev.target.files?.[0];
+    if (!file) return;
+    setImportando(true);
+    setNotifMsg('');
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws) as Record<string, unknown>[];
+      const registros = rows.map((r: any) => ({
+        bl:             String(r['BL / Booking'] ?? r['BL'] ?? '').trim().toUpperCase(),
+        proveedor:      String(r['Proveedor'] ?? '').trim(),
+        naviera:        String(r['Naviera'] ?? '').trim(),
+        contenedor:     String(r['Contenedor'] ?? '40HC').trim(),
+        origen:         String(r['Puerto Origen'] ?? '').trim(),
+        destino_puerto: String(r['Puerto Destino'] ?? '').trim(),
+        etd:            excelDateToISO(r['ETD (Salida)'] ?? r['ETD']) || null,
+        eta:            excelDateToISO(r['ETA (Llegada)'] ?? r['ETA']) || null,
+        estado:         String(r['Estado'] ?? 'En Puerto Origen').trim(),
+        peso_kg:        Number(r['Peso KG'] ?? 0),
+        cbm:            Number(r['CBM'] ?? 0),
+        pallets:        Number(r['Pallets'] ?? 0),
+        descripcion:    String(r['Descripcion'] ?? '').trim(),
+        notas:          String(r['Notas'] ?? '').trim(),
+      })).filter((r: any) => r.bl);
+
+      if (registros.length === 0) {
+        setNotifEstado('error');
+        setNotifMsg('No se encontraron filas válidas. Verifica que el archivo tenga la columna "BL / Booking".');
+        setImportando(false);
+        return;
+      }
+
+      await fetch(`${SUPABASE_URL}/rest/v1/embarques`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify(registros),
+      });
+
+      setEmbarques((prev: any[]) => [...registros.map((r: any, i: number) => ({ ...r, id: 'imp-' + Date.now() + i, documentos: {} })), ...prev]);
+      setNotifEstado('ok');
+      setNotifMsg(`✅ ${registros.length} embarque(s) importado(s) correctamente desde Excel.`);
+    } catch (e: any) {
+      setNotifEstado('error');
+      setNotifMsg('❌ Error al importar: ' + e.message);
+    }
+    setImportando(false);
+    ev.target.value = '';
+  }
 
   const handleFormChange = (field: string, value: any) => {
     setForm((prev: any) => ({ ...prev, [field]: value }));
@@ -261,8 +366,8 @@ export default function AgenteTrafico() {
           </div>
         )}
 
-        {/* BOTON NUEVO EMBARQUE */}
-        <div style={{ marginBottom: 20 }}>
+        {/* BOTONES PRINCIPALES */}
+        <div style={{ marginBottom: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button
             onClick={() => { setFormularioAbierto(!formularioAbierto); setNotifMsg(''); }}
             style={{
@@ -274,6 +379,28 @@ export default function AgenteTrafico() {
           >
             {formularioAbierto ? '✕ Cancelar' : '+ Cargar Nuevo Embarque'}
           </button>
+          <button
+            onClick={handleExportar}
+            style={{
+              background: 'transparent', color: '#8b949e',
+              border: '1px solid #21262d', borderRadius: 8, padding: '10px 18px',
+              fontSize: 13, cursor: 'pointer',
+            }}
+          >
+            ↓ Exportar Excel
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importando}
+            style={{
+              background: 'rgba(63,185,80,0.1)', color: '#3fb950',
+              border: '1px solid #3fb95044', borderRadius: 8, padding: '10px 18px',
+              fontSize: 13, cursor: importando ? 'not-allowed' : 'pointer', opacity: importando ? 0.6 : 1,
+            }}
+          >
+            {importando ? 'Importando…' : '↑ Importar Excel'}
+          </button>
+          <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={handleImportar} />
         </div>
 
         {/* FORMULARIO DESPLEGABLE */}
@@ -297,8 +424,11 @@ export default function AgenteTrafico() {
                 <label style={labelStyle}>Proveedor *</label>
                 <select style={inputStyle} value={form.proveedor} onChange={e => handleFormChange('proveedor', e.target.value)}>
                   <option value="">-- Seleccionar proveedor --</option>
-                  {PROVEEDORES.map(p => (
-                    <option key={p.id} value={p.nombre}>{p.nombre}</option>
+                  {listaProveedores.map((p: any) => (
+                    <option key={p.id} value={p.nombre}>{p.nombre}{p.pais ? ` (${p.pais})` : ''}</option>
+                  ))}
+                  {proveedoresExtra.map((n: any) => (
+                    <option key={n} value={n}>{n}</option>
                   ))}
                 </select>
               </div>
@@ -434,8 +564,11 @@ export default function AgenteTrafico() {
                 onChange={e => setProveedorFiltro(e.target.value)}
               >
                 <option value="">Todos los proveedores</option>
-                {PROVEEDORES.map(p => (
-                  <option key={p.id} value={p.nombre}>{p.nombre}</option>
+                {listaProveedores.map((p: any) => (
+                  <option key={p.id} value={p.nombre}>{p.nombre}{p.pais ? ` (${p.pais})` : ''}</option>
+                ))}
+                {proveedoresExtra.map((n: any) => (
+                  <option key={n} value={n}>{n}</option>
                 ))}
               </select>
             </div>
