@@ -321,47 +321,78 @@ export default function AgenteTrafico() {
     setGuardando(false);
   };
 
-  const handleNotificarEquipo = async (embarque: any) => {
+  const handleNotificarEquipo = async (embarque: any, autoTrigger = false) => {
     if (!embarque) return;
     setNotifEstado('enviando');
-    setNotifMsg('Enviando notificacion al equipo de produccion...');
+    setNotifMsg(autoTrigger ? `Cambio de estado detectado — encolando notificación automática...` : `Enviando al Orquestador Central para autorización...`);
+
+    const asunto = `[InfiniteX] BL ${embarque.bl} — Estado: ${embarque.estado}`;
+    const mensaje_texto = [
+      `📦 ACTUALIZACIÓN DE EMBARQUE — InfiniteX`,
+      ``,
+      `BL / Booking:   ${embarque.bl}`,
+      `Proveedor:      ${embarque.proveedor}`,
+      `Estado actual:  ${embarque.estado}`,
+      `ETA (Llegada):  ${embarque.eta || 'No definida'}`,
+      `Puerto Destino: ${embarque.destino_puerto || '-'}`,
+      embarque.descripcion ? `Descripción:    ${embarque.descripcion}` : '',
+      embarque.notas ? `⚠ Notas: ${embarque.notas}` : '',
+      ``,
+      `Generado por Agente de Tráfico — InfiniteX`,
+      `Sicoben Ediciones / Kadi Internacional S.A.`,
+    ].filter(Boolean).join('\n');
+
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/agente-notificador`, {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/message_queue`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Prefer': 'return=minimal',
         },
         body: JSON.stringify({
-          accion: 'notificar_embarque',
-          grupo: 'produccion',
-          embarque: {
-            bl: embarque.bl,
-            proveedor: embarque.proveedor,
-            naviera: embarque.naviera,
-            contenedor: embarque.contenedor,
-            origen: embarque.origen,
-            destino_puerto: embarque.destino_puerto,
-            eta: embarque.eta,
-            estado: embarque.estado,
-            descripcion: embarque.descripcion,
+          agent: 'orquestador',
+          action: 'notificar_produccion',
+          payload: {
+            asunto,
+            mensaje_texto,
+            embarque: {
+              bl: embarque.bl,
+              proveedor: embarque.proveedor,
+              estado: embarque.estado,
+              eta: embarque.eta,
+              destino_puerto: embarque.destino_puerto,
+              descripcion: embarque.descripcion,
+              notas: embarque.notas,
+            },
+            destinatarios: EQUIPO,
+            origen: 'agente_trafico',
+            automatico: autoTrigger,
           },
-          equipo: EQUIPO,
-          mensaje: `Actualizacion de embarque ${embarque.bl} — Estado: ${embarque.estado} — ETA: ${embarque.eta}`,
+          status: 'pending_approval',
+          priority: embarque.estado?.includes('CRÍTICO') ? 1 : 5,
         }),
       });
-      if (res.ok) {
+      if (res.ok || res.status === 201) {
         setNotifEstado('ok');
-        setNotifMsg(`Notificacion enviada al equipo de produccion sobre embarque ${embarque.bl}.`);
+        setNotifMsg(`✅ ${autoTrigger ? 'Notificación automática' : 'Notificación'} de ${embarque.bl} encolada — pendiente de aprobación del Orquestador Central.`);
       } else {
-        const txt = await res.text();
-        setNotifEstado('ok');
-        setNotifMsg(`Notificacion registrada. (Respuesta: ${res.status})`);
+        setNotifEstado('error');
+        setNotifMsg(`Error al encolar notificación (${res.status}).`);
       }
     } catch (e: any) {
       setNotifEstado('error');
-      setNotifMsg('Error al conectar con el agente notificador: ' + e.message);
+      setNotifMsg('Error de conexión: ' + e.message);
     }
+  };
+
+  const handleCambiarEstado = async (nuevoEstado: string) => {
+    if (!embarqueSeleccionado || nuevoEstado === embarqueSeleccionado.estado) return;
+    const updated = { ...embarqueSeleccionado, estado: nuevoEstado };
+    setEmbarqueSeleccionado(updated);
+    setEmbarques((prev: any[]) => prev.map((e: any) => e.id === updated.id ? updated : e));
+    await handleNotificarEquipo(updated, true);
   };
 
   const inputStyle: React.CSSProperties = {
@@ -809,6 +840,17 @@ export default function AgenteTrafico() {
                     <span>ETA: <span style={{ color: '#e6edf3' }}>{emb.eta}</span></span>
                     <span>Cont: <span style={{ color: '#e6edf3' }}>{emb.contenedor}</span></span>
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleNotificarEquipo(emb); }}
+                    style={{
+                      marginTop: 10, width: '100%', background: 'rgba(88,166,255,0.07)',
+                      color: '#58a6ff', border: '1px solid #58a6ff33',
+                      borderRadius: 6, padding: '6px 0', fontSize: 12,
+                      cursor: 'pointer', fontWeight: 600, letterSpacing: 0.5,
+                    }}
+                  >
+                    🔔 Notificar a Producción
+                  </button>
                 </div>
               ))}
             </div>
@@ -824,29 +866,48 @@ export default function AgenteTrafico() {
               </div>
             ) : (
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
-                  <div>
-                    <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>{embarqueSeleccionado.bl}</h2>
-                    <span style={{
-                      fontSize: 12, padding: '3px 12px', borderRadius: 20, marginTop: 6, display: 'inline-block',
-                      background: (ESTADO_COLORS[embarqueSeleccionado.estado] || '#8b949e') + '22',
-                      color: ESTADO_COLORS[embarqueSeleccionado.estado] || '#8b949e',
-                      border: `1px solid ${ESTADO_COLORS[embarqueSeleccionado.estado] || '#8b949e'}44`,
-                    }}>{embarqueSeleccionado.estado}</span>
+                <div style={{ marginBottom: 24 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                    <div>
+                      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>{embarqueSeleccionado.bl}</h2>
+                      <span style={{
+                        fontSize: 12, padding: '3px 12px', borderRadius: 20, marginTop: 6, display: 'inline-block',
+                        background: (ESTADO_COLORS[embarqueSeleccionado.estado] || '#8b949e') + '22',
+                        color: ESTADO_COLORS[embarqueSeleccionado.estado] || '#8b949e',
+                        border: `1px solid ${ESTADO_COLORS[embarqueSeleccionado.estado] || '#8b949e'}44`,
+                      }}>{embarqueSeleccionado.estado}</span>
+                    </div>
                   </div>
-                  {/* Botones accion */}
-                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {/* Actualizar estado + Notificar */}
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 11, color: '#8b949e', letterSpacing: 1, textTransform: 'uppercase' }}>Actualizar estado:</span>
+                      <select
+                        value={embarqueSeleccionado.estado}
+                        onChange={e => handleCambiarEstado(e.target.value)}
+                        style={{
+                          background: '#0d1117', border: '1px solid #30363d',
+                          borderRadius: 6, color: '#e6edf3', padding: '6px 10px',
+                          fontSize: 13, cursor: 'pointer', outline: 'none',
+                        }}
+                      >
+                        {Object.keys(ESTADO_COLORS).map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    </div>
                     <button
                       onClick={() => handleNotificarEquipo(embarqueSeleccionado)}
                       style={{
-                        background: 'rgba(88,166,255,0.1)', color: '#58a6ff',
-                        border: '1px solid #58a6ff44', borderRadius: 8,
-                        padding: '8px 16px', fontSize: 13, cursor: 'pointer', fontWeight: 600,
+                        background: '#58a6ff', color: '#0d1117',
+                        border: 'none', borderRadius: 8,
+                        padding: '8px 18px', fontSize: 13, cursor: 'pointer', fontWeight: 700,
                       }}
                     >
-                      📧 Notificar Equipo
+                      🔔 Notificar a Producción
                     </button>
                   </div>
+                  <p style={{ fontSize: 11, color: '#8b949e', marginTop: 6, marginBottom: 0 }}>
+                    Al cambiar el estado o hacer clic en Notificar, la solicitud pasa al Orquestador Central para autorización antes de enviarse.
+                  </p>
                 </div>
 
                 {/* Equipo que recibe notificacion */}

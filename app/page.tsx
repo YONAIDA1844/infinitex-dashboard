@@ -1,6 +1,6 @@
 export default function Home() {
   const agentes = [
-    { num: 1, nombre: 'Orquestador Central', area: 'Hub / Router', estado: 'pendiente', ruta: null },
+    { num: 1, nombre: 'Orquestador Central', area: 'Hub / Router — Aprobaciones', estado: 'desarrollo', ruta: '/orquestador' },
     { num: 2, nombre: 'Agente Bodega', area: 'Logistica - Bodega Anker', estado: 'pendiente', ruta: null },
     { num: 3, nombre: 'Agente Ventas', area: 'Logistica - Ventas', estado: 'pendiente', ruta: null },
     { num: 4, nombre: 'Agente Despacho', area: 'Logistica - Despacho', estado: 'pendiente', ruta: null },
@@ -46,11 +46,11 @@ export default function Home() {
         </div>
         <div style={{backgroundColor: '#161b22', border: '1px solid #21262d', borderRadius: '8px', padding: '16px 24px', minWidth: '140px'}}>
           <p style={{color: '#8b949e', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px'}}>En Desarrollo</p>
-          <p style={{color: '#58a6ff', fontSize: '24px', fontWeight: '600'}}>1</p>
+          <p style={{color: '#58a6ff', fontSize: '24px', fontWeight: '600'}}>2</p>
         </div>
         <div style={{backgroundColor: '#161b22', border: '1px solid #21262d', borderRadius: '8px', padding: '16px 24px', minWidth: '140px'}}>
           <p style={{color: '#8b949e', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px'}}>Pendientes</p>
-          <p style={{color: '#8b949e', fontSize: '24px', fontWeight: '600'}}>6</p>
+          <p style={{color: '#8b949e', fontSize: '24px', fontWeight: '600'}}>5</p>
         </div>
         <div style={{backgroundColor: '#161b22', border: '1px solid #21262d', borderRadius: '8px', padding: '16px 24px', minWidth: '140px'}}>
           <p style={{color: '#8b949e', fontSize: '11px', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '6px'}}>Operativos</p>
