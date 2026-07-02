@@ -11,11 +11,17 @@ const PROVEEDORES = [
 ];
 
 const ESTADO_COLORS: Record<string, string> = {
-  'En Transito': '#58a6ff',
-  'En Puerto Origen': '#d29922',
-  'En Aduana': '#f85149',
-  'Liberado': '#3fb950',
-  'Entregado': '#8b949e',
+  'En cotización':                  '#a78bfa',
+  'Cotizado':                       '#7c3aed',
+  'En proceso de carga en fábrica': '#f97316',
+  'En Puerto Origen':               '#d29922',
+  'En Transito':                    '#58a6ff',
+  'Asignado operador':              '#22d3ee',
+  'Arribo a puerto':                '#818cf8',
+  'En Aduana':                      '#f59e0b',
+  'En Aduana — CRÍTICO':            '#f85149',
+  'Liberado':                       '#3fb950',
+  'Entregado':                      '#8b949e',
 };
 
 const EQUIPO = [
