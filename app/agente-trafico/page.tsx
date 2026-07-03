@@ -82,7 +82,7 @@ export default function AgenteTrafico() {
         if (data.ok && Array.isArray(data.proveedores)) {
           const PREFIJOS_INTL = ['+86', '+91', '+34', '+52'];
           const CIUDADES_INTL = ['guangzhou','changsha','shenzhen','ningbo','beijing','shanghai','noida','mumbai','delhi','madrid','barcelona','mexico','guadalajara'];
-          const KEYWORDS_INTL = ['CHINA','INDIA','MEXICO','ESPAÑA','SPAIN','SHENZHEN','GUANGZHOU','CHANGSHA','NINGBO','BEIJING','SHANGHAI','NOIDA','MUMBAI'];
+          const KEYWORDS_INTL = ['CHINA','INDIA','MEXICO','ESPAÑA','SPAIN','SHENZHEN','GUANGZHOU','CHANGSHA','NINGBO','BEIJING','SHANGHAI','NOIDA','MUMBAI','MAMMOTH'];
           const filtered = data.proveedores.filter((p: any) => {
             const phone = (p.phone || '').toLowerCase();
             const city  = (p.city || '').toLowerCase();
