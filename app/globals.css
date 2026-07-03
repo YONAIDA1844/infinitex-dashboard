@@ -1,6 +1,52 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@keyframes nodeGlow {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+@keyframes blink {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.25; }
+}
+@keyframes travel {
+  0%   { stroke-dashoffset: 200; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+@keyframes travel2 {
+  0%   { stroke-dashoffset: 160; opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 0; }
+}
+
+.ix-node { animation: nodeGlow 2.5s ease-in-out infinite; }
+.ix-node-2 { animation: nodeGlow 2.5s 0.5s ease-in-out infinite; }
+.ix-node-3 { animation: nodeGlow 2.5s 1s ease-in-out infinite; }
+.ix-node-4 { animation: nodeGlow 2.5s 1.5s ease-in-out infinite; }
+.ix-node-5 { animation: nodeGlow 2.5s 2s ease-in-out infinite; }
+.ix-node-6 { animation: nodeGlow 2.5s 0.3s ease-in-out infinite; }
+.ix-node-7 { animation: nodeGlow 2.5s 1.2s ease-in-out infinite; }
+
+.ix-halo { animation: blink 2s ease-in-out infinite; }
+
+.ix-route1 { stroke-dasharray: 8 240; animation: travel 4s linear infinite; }
+.ix-route2 { stroke-dasharray: 8 180; animation: travel2 3.2s 1.2s linear infinite; }
+.ix-route3 { stroke-dasharray: 8 150; animation: travel 3.8s 0.6s linear infinite; }
+.ix-route4 { stroke-dasharray: 8 130; animation: travel2 3.5s 2s linear infinite; }
+.ix-route5 { stroke-dasharray: 6 100; animation: travel 2.8s 0.3s linear infinite; }
+.ix-route6 { stroke-dasharray: 8 160; animation: travel2 4.5s 1.8s linear infinite; }
+
+/* Header small globe routes */
+.ix-hr1 { stroke-dasharray: 6 194; animation: travel 3.5s linear infinite; }
+.ix-hr2 { stroke-dasharray: 6 154; animation: travel2 4.2s 1.2s linear infinite; }
+.ix-hr3 { stroke-dasharray: 6 120; animation: travel 3s 2s linear infinite; }
+.ix-hr4 { stroke-dasharray: 6 100; animation: travel2 4.8s 0.5s linear infinite; }
 
 @layer base {
   :root {

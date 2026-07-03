@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { Inter } from "next/font/google";
+
+const inter = Inter({ subsets: ["latin"], weight: ["300","400","500","600","700"] });
 
 export const metadata: Metadata = {
   title: "InfiniteX | Sicoben Ediciones",
@@ -13,7 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body className={inter.className}>{children}</body>
     </html>
   );
 }
