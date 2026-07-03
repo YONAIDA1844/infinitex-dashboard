@@ -99,6 +99,7 @@ export default function OrquestadorPage() {
         playTone('aprobado');
         setNotifTipo('ok');
         setNotif(`✅ Aprobado y enviado al equipo: ${msg.payload?.asunto || msg.id}`);
+        setHistorial(prev => [{ ...msg, status: 'approved', processed_at: new Date().toISOString() }, ...prev].slice(0, 20));
         setTimeout(() => {
           setMensajes(prev => prev.filter(m => m.id !== msg.id));
           setResultados(prev => { const r = { ...prev }; delete r[msg.id]; return r; });
@@ -134,6 +135,7 @@ export default function OrquestadorPage() {
         playTone('rechazado');
         setNotifTipo('ok');
         setNotif(`Notificación rechazada: ${msg.payload?.embarque?.bl || 'sin BL'}`);
+        setHistorial(prev => [{ ...msg, status: 'rejected', processed_at: new Date().toISOString() }, ...prev].slice(0, 20));
         setTimeout(() => {
           setMensajes(prev => prev.filter(m => m.id !== msg.id));
           setResultados(prev => { const r = { ...prev }; delete r[msg.id]; return r; });
