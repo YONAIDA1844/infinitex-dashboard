@@ -57,7 +57,7 @@ export default function AgenteTrafico() {
 
   const [proveedorFiltro, setProveedorFiltro] = useState('');
   const [embarqueSeleccionado, setEmbarqueSeleccionado] = useState<any>(null);
-  const [embarques, setEmbarques] = useState<any[]>(EMBARQUES_DEMO);
+  const [embarques, setEmbarques] = useState<any[]>([]);
   const [proveedores, setProveedores] = useState<any[]>([]);
   const [panelProveedoresAbierto, setPanelProveedoresAbierto] = useState(false);
   const [formProveedorAbierto, setFormProveedorAbierto] = useState(false);
@@ -70,6 +70,22 @@ export default function AgenteTrafico() {
   const [notifMsg, setNotifMsg] = useState('');
   const [importando, setImportando] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch(`${SUPABASE_URL}/rest/v1/trafico_embarques?activo=eq.true&order=created_at.asc`, {
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Accept-Profile': 'test' },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setEmbarques(data.map((e: any) => ({
+            ...e,
+            documentos: { bl: e.doc_bl, packing_list: e.doc_packing, factura: e.doc_factura, permiso: e.doc_permiso },
+          })));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch(`${SUPABASE_URL}/functions/v1/agente-notificador`, {
