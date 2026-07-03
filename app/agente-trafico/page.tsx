@@ -31,6 +31,7 @@ const ESTADO_COLORS: Record<string, string> = {
   'En Aduana — CRÍTICO':            '#f85149',
   'Liberado':                       '#3fb950',
   'Entregado':                      '#8b949e',
+  'Disponible en Anker':            '#00d4aa',
 };
 
 const EQUIPO = [
@@ -117,6 +118,9 @@ export default function AgenteTrafico() {
   const [notificadoBl, setNotificadoBl] = useState('');
   const [importando, setImportando] = useState(false);
   const [previewWA, setPreviewWA] = useState(false);
+  const [historial, setHistorial] = useState<any[]>([]);
+  const [finalizando, setFinalizando] = useState(false);
+  const [verHistorial, setVerHistorial] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -132,6 +136,15 @@ export default function AgenteTrafico() {
           })));
         }
       })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch(`${SUPABASE_URL}/rest/v1/trafico_embarques?activo=eq.false&order=fecha_disponible.desc`, {
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+    })
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setHistorial(data); })
       .catch(() => {});
   }, []);
 
@@ -444,6 +457,35 @@ export default function AgenteTrafico() {
       setTimeout(() => { setNotifMsg(''); setNotifEstado(''); }, 5000);
     }
     setNotificando(false);
+  };
+
+  const handleFinalizarAnker = async () => {
+    if (!embarqueSeleccionado || finalizando) return;
+    setFinalizando(true);
+    const ahora = new Date().toISOString();
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/trafico_embarques?id=eq.${embarqueSeleccionado.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({ activo: false, estado: 'Disponible en Anker', fecha_disponible: ahora }),
+      });
+      const finalizado = { ...embarqueSeleccionado, activo: false, estado: 'Disponible en Anker', fecha_disponible: ahora };
+      setHistorial((prev: any[]) => [finalizado, ...prev]);
+      setEmbarques((prev: any[]) => prev.filter((e: any) => e.id !== embarqueSeleccionado.id));
+      setEmbarqueSeleccionado(null);
+      setNotifEstado('ok');
+      setNotifMsg(`✅ Carga ${finalizado.bl} finalizada — Disponible en Anker.`);
+      setTimeout(() => { setNotifMsg(''); setNotifEstado(''); }, 5000);
+    } catch (e: any) {
+      setNotifEstado('error');
+      setNotifMsg('Error al finalizar: ' + e.message);
+    }
+    setFinalizando(false);
   };
 
   const handleCambiarEstado = async (nuevoEstado: string) => {
@@ -1017,6 +1059,25 @@ export default function AgenteTrafico() {
                   <p style={{ fontSize: 11, color: '#8b949e', marginTop: 6, marginBottom: 0 }}>
                     Al cambiar el estado o hacer clic en Notificar, la solicitud pasa al Orquestador Central para autorización antes de enviarse.
                   </p>
+                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                    <button
+                      onClick={handleFinalizarAnker}
+                      disabled={finalizando}
+                      style={{
+                        background: finalizando ? '#21262d' : 'linear-gradient(135deg, #00d4aa22, #00d4aa11)',
+                        color: finalizando ? '#8b949e' : '#00d4aa',
+                        border: '1px solid #00d4aa55',
+                        borderRadius: 8, padding: '10px 22px',
+                        fontSize: 13, fontWeight: 700, cursor: finalizando ? 'not-allowed' : 'pointer',
+                        letterSpacing: 0.5,
+                      }}
+                    >
+                      {finalizando ? '⏳ Finalizando...' : '✦ Marcar Disponible en Anker'}
+                    </button>
+                    <p style={{ fontSize: 11, color: '#00d4aa88', marginTop: 6, marginBottom: 0 }}>
+                      Mueve esta carga al historial de finalizadas. Acción irreversible.
+                    </p>
+                  </div>
                 </div>
 
                 {/* Equipo que recibe notificacion */}
@@ -1094,6 +1155,87 @@ export default function AgenteTrafico() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* HISTORIAL DE CARGAS FINALIZADAS */}
+      <div style={{ maxWidth: 1400, margin: '40px auto 0', padding: '0 32px' }}>
+        <button
+          onClick={() => setVerHistorial(v => !v)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+            background: '#161b22', border: '1px solid rgba(0,212,170,0.25)',
+            borderRadius: 10, padding: '14px 20px', cursor: 'pointer',
+            color: '#00d4aa', fontSize: 14, fontWeight: 600, textAlign: 'left',
+            marginBottom: verHistorial ? 0 : 8,
+            borderBottomLeftRadius: verHistorial ? 0 : 10,
+            borderBottomRightRadius: verHistorial ? 0 : 10,
+          }}
+        >
+          <span style={{ fontSize: 18 }}>📦</span>
+          <span>Historial de Cargas Finalizadas — Disponibles en Anker</span>
+          <span style={{
+            marginLeft: 10, background: 'rgba(0,212,170,0.15)', color: '#00d4aa',
+            fontSize: 12, padding: '2px 10px', borderRadius: 20,
+            border: '1px solid rgba(0,212,170,0.3)',
+          }}>{historial.length}</span>
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: '#8b949e' }}>{verHistorial ? '▲ Ocultar' : '▼ Ver historial'}</span>
+        </button>
+
+        {verHistorial && (
+          <div style={{
+            background: '#161b22', border: '1px solid rgba(0,212,170,0.25)',
+            borderTop: 'none', borderBottomLeftRadius: 10, borderBottomRightRadius: 10,
+            overflow: 'hidden', marginBottom: 8,
+          }}>
+            {historial.length === 0 ? (
+              <div style={{ padding: 40, textAlign: 'center', color: '#8b949e', fontSize: 13 }}>
+                Aún no hay cargas finalizadas. Cuando una carga sea marcada como "Disponible en Anker" aparecerá aquí.
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: 'rgba(0,212,170,0.05)', borderBottom: '1px solid rgba(0,212,170,0.15)' }}>
+                      {['BL / Booking', 'Proveedor', 'Descripción', 'Contenedor', 'Naviera', 'ETA', 'Disponible desde', 'Peso / CBM'].map(h => (
+                        <th key={h} style={{
+                          padding: '10px 14px', textAlign: 'left', fontSize: 10,
+                          color: '#00d4aa99', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600,
+                          whiteSpace: 'nowrap',
+                        }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {historial.map((e: any, i: number) => (
+                      <tr key={e.id} style={{
+                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
+                      }}>
+                        <td style={{ padding: '12px 14px', fontWeight: 700, color: '#e6edf3', whiteSpace: 'nowrap' }}>{e.bl}</td>
+                        <td style={{ padding: '12px 14px', color: '#a78bfa', whiteSpace: 'nowrap' }}>{e.proveedor}</td>
+                        <td style={{ padding: '12px 14px', color: '#8b949e', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.descripcion || '-'}</td>
+                        <td style={{ padding: '12px 14px', color: '#58a6ff', whiteSpace: 'nowrap' }}>{e.contenedor}</td>
+                        <td style={{ padding: '12px 14px', color: '#8b949e', whiteSpace: 'nowrap' }}>{e.naviera || '-'}</td>
+                        <td style={{ padding: '12px 14px', color: '#e6edf3', whiteSpace: 'nowrap' }}>{e.eta || '-'}</td>
+                        <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
+                          {e.fecha_disponible ? (
+                            <span style={{ color: '#00d4aa', fontWeight: 600 }}>
+                              {new Date(e.fecha_disponible).toLocaleDateString('es-PA', { day: '2-digit', month: 'short', year: 'numeric' })}
+                            </span>
+                          ) : '-'}
+                        </td>
+                        <td style={{ padding: '12px 14px', color: '#8b949e', whiteSpace: 'nowrap' }}>
+                          {e.peso_kg ? `${Number(e.peso_kg).toLocaleString()} kg` : '-'}
+                          {e.cbm ? ` / ${e.cbm} CBM` : ''}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Footer */}
