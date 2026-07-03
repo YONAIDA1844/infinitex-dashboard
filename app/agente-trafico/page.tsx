@@ -493,6 +493,20 @@ export default function AgenteTrafico() {
     const updated = { ...embarqueSeleccionado, estado: nuevoEstado };
     setEmbarqueSeleccionado(updated);
     setEmbarques((prev: any[]) => prev.map((e: any) => e.id === updated.id ? updated : e));
+
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/trafico_embarques?id=eq.${updated.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({ estado: nuevoEstado, updated_at: new Date().toISOString() }),
+      });
+    } catch (_) {}
+
     await handleNotificarEquipo(updated, true);
   };
 
