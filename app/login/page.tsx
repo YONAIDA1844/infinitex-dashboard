@@ -77,7 +77,7 @@ export default function LoginPage() {
       @keyframes ix-route { 0%{stroke-dashoffset:200;opacity:0} 15%{opacity:1} 85%{opacity:1} 100%{stroke-dashoffset:0;opacity:0} }
     `;
     document.head.appendChild(style);
-    return () => document.head.removeChild(style);
+    return () => { document.head.removeChild(style); };
   }, []);
 
   async function handleLogin(e: React.FormEvent) {
