@@ -41,6 +41,51 @@ const EQUIPO = [
 
 const EMBARQUES_DEMO: any[] = [];
 
+const MESES_WA = ['ene.','feb.','mar.','abr.','may.','jun.','jul.','ago.','sep.','oct.','nov.','dic.'];
+const NUM_EMOJI_WA = ['1️⃣','2️⃣','3️⃣','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+
+function formatFechaWA(dateStr: string | null): string {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr + 'T12:00:00Z');
+  return `${MESES_WA[d.getUTCMonth()]} ${d.getUTCDate()}`;
+}
+function abrevBLWA(bl: string): string { const p = bl.split('-'); return p.length >= 2 ? p[1] : bl; }
+function numEmbWA(bl: string): string { const p = bl.split('-'); return `Emb. ${p[p.length-1].replace('EMB','')}`;  }
+function descCortaWA(d: string): string { return d.replace(/\s*-\s*Embarque\s*\d+\s*$/i,'').trim(); }
+function grupoWA(estado: string, notas: string): 'transito'|'proceso'|'cotizacion' {
+  const e = (estado||'').toLowerCase(), n = (notas||'').toLowerCase();
+  if (e.includes('transito')||e.includes('tránsito')||e.includes('embarcado')) return 'transito';
+  if (n.includes('cotizacion')||n.includes('cotización')||e.includes('cotizacion')) return 'cotizacion';
+  return 'proceso';
+}
+function generarTextoWA(embarques: any[]): string {
+  const hoy = new Date();
+  const fecha = `${hoy.getDate()}/${MESES_WA[hoy.getMonth()]}/${hoy.getFullYear()}`;
+  const grupos: Record<string,any[]> = { transito:[], proceso:[], cotizacion:[] };
+  embarques.forEach(e => grupos[grupoWA(e.estado, e.notas)].push(e));
+  let idx = 0;
+  const lineas: string[] = [`📦 SEGUIMIENTO – TRÁFICO 2026 (${fecha})`, ''];
+  const render = (titulo: string, items: any[]) => {
+    if (!items.length) return;
+    lineas.push(titulo, '');
+    items.forEach(e => {
+      const num = NUM_EMOJI_WA[idx++] ?? `${idx}.`;
+      lineas.push(`${num} ${e.bl} | ${abrevBLWA(e.bl)} | ${descCortaWA(e.descripcion)} | ${numEmbWA(e.bl)}`);
+      if (e.etd||e.eta) lineas.push(`· ${[e.etd?`ETD: ${formatFechaWA(e.etd)}`:'',e.eta?`ETA: ${formatFechaWA(e.eta)}`:''].filter(Boolean).join(' · ')}`);
+      else lineas.push('· Sin ETD/ETA aún');
+      if (e.notas) lineas.push(`· ${e.notas}`);
+      lineas.push('');
+    });
+  };
+  render('🚢 EN TRÁNSITO (ya salieron ✓):', grupos.transito);
+  render('⚙️ EN PROCESO:', grupos.proceso);
+  render('💰 EN COTIZACIÓN:', grupos.cotizacion);
+  lineas.push('─────────────────────');
+  lineas.push('InfiniteX · Sicoben Ediciones');
+  lineas.push('Kadi Internacional S.A.');
+  return lineas.join('\n');
+}
+
 const FORM_VACIO = {
   bl: '', proveedor: '', naviera: '', incoterm: 'FOB',
   contenedor: '40HC', origen: '', destino_puerto: 'Manzanillo, Panama',
@@ -71,6 +116,7 @@ export default function AgenteTrafico() {
   const [notificando, setNotificando] = useState(false);
   const [notificadoBl, setNotificadoBl] = useState('');
   const [importando, setImportando] = useState(false);
+  const [previewWA, setPreviewWA] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -499,6 +545,16 @@ export default function AgenteTrafico() {
             }}
           >
             🏭 Gestionar Proveedores ({proveedores.length})
+          </button>
+          <button
+            onClick={() => setPreviewWA(true)}
+            style={{
+              background: 'rgba(37,211,102,0.1)', color: '#25d366',
+              border: '1px solid #25d36644', borderRadius: 8, padding: '10px 18px',
+              fontSize: 13, cursor: 'pointer', fontWeight: 600,
+            }}
+          >
+            📱 Preview WhatsApp
           </button>
         </div>
 
@@ -1014,6 +1070,55 @@ export default function AgenteTrafico() {
         <span>INFINITE X — Sicoben Ediciones Panama</span>
         <span>KADI INTERNATIONAL S.A. © 2026</span>
       </div>
+
+      {/* MODAL PREVIEW WHATSAPP */}
+      {previewWA && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: 16,
+        }} onClick={() => setPreviewWA(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#111b21', borderRadius: 16, width: '100%', maxWidth: 420,
+            overflow: 'hidden', boxShadow: '0 24px 80px rgba(0,0,0,0.7)',
+          }}>
+            {/* Header WhatsApp */}
+            <div style={{ background: '#202c33', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 42, height: 42, borderRadius: '50%', background: 'linear-gradient(135deg,#0d1117,#1c2526)', border: '2px solid #58a6ff33', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, color: '#58a6ff', letterSpacing: 1 }}>IX</div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 600, color: '#e9edef' }}>InfiniteX · Agente Tráfico</div>
+                <div style={{ fontSize: 12, color: '#8696a0' }}>Sicoben Ediciones · Kadi Internacional</div>
+              </div>
+              <button onClick={() => setPreviewWA(false)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#8696a0', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+            </div>
+
+            {/* Fondo chat */}
+            <div style={{ background: '#0b141a', padding: '16px 12px', maxHeight: '70vh', overflowY: 'auto' }}>
+              {/* Burbuja mensaje */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+                <div style={{
+                  background: '#005c4b', borderRadius: '12px 2px 12px 12px',
+                  padding: '10px 14px', maxWidth: '88%',
+                  fontSize: 13, color: '#e9edef', lineHeight: 1.5,
+                  whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                }}>
+                  {generarTextoWA(embarques)}
+                  <div style={{ textAlign: 'right', marginTop: 6, fontSize: 11, color: 'rgba(233,237,239,0.6)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 4 }}>
+                    {new Date().toLocaleTimeString('es-PA', { hour: '2-digit', minute: '2-digit' })}
+                    <span style={{ color: '#53bdeb' }}>✓✓</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer info */}
+            <div style={{ background: '#202c33', padding: '10px 16px', fontSize: 11, color: '#8696a0', textAlign: 'center' }}>
+              Este mensaje se enviará a Daniel Benarroch, Asist. Dirección y Asist. Ventas · 8:00 AM diario
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
