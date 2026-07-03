@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InfiniteX</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0d1421; color: #e2eaf6; font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; }
+
+@keyframes nodeGlow { 0%,100%{opacity:1} 50%{opacity:.35} }
+@keyframes blink    { 0%,100%{opacity:1} 50%{opacity:.25} }
+@keyframes travel   { 0%{stroke-dashoffset:200;opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{stroke-dashoffset:0;opacity:0} }
+@keyframes travel2  { 0%{stroke-dashoffset:160;opacity:0} 10%{opacity:1} 90%{opacity:1} 100%{stroke-dashoffset:0;opacity:0} }
+
+.n1{animation:nodeGlow 2.5s ease-in-out infinite}
+.n2{animation:nodeGlow 2.5s .5s ease-in-out infinite}
+.n3{animation:nodeGlow 2.5s 1s ease-in-out infinite}
+.n4{animation:nodeGlow 2.5s 1.5s ease-in-out infinite}
+.n5{animation:nodeGlow 2.5s 2s ease-in-out infinite}
+.n6{animation:nodeGlow 2.5s .3s ease-in-out infinite}
+.n7{animation:nodeGlow 2.5s 1.2s ease-in-out infinite}
+.halo{animation:blink 2s ease-in-out infinite}
+.dot{animation:blink 2.5s ease-in-out infinite}
+
+.r1{stroke-dasharray:8 240;animation:travel 4s linear infinite}
+.r2{stroke-dasharray:8 180;animation:travel2 3.2s 1.2s linear infinite}
+.r3{stroke-dasharray:8 150;animation:travel 3.8s .6s linear infinite}
+.r4{stroke-dasharray:8 130;animation:travel2 3.5s 2s linear infinite}
+.r5{stroke-dasharray:6 100;animation:travel 2.8s .3s linear infinite}
+.r6{stroke-dasharray:8 160;animation:travel2 4.5s 1.8s linear infinite}
+.hr1{stroke-dasharray:6 194;animation:travel 3.5s linear infinite}
+.hr2{stroke-dasharray:6 154;animation:travel2 4.2s 1.2s linear infinite}
+.hr4{stroke-dasharray:6 100;animation:travel2 4.8s .5s linear infinite}
+
+header {
+  height: 64px; padding: 0 48px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  background: #0d1421;
+  position: sticky; top: 0; z-index: 10;
+}
+.logo { display: flex; align-items: center; gap: 12px; }
+.wordmark { font-size: 17px; font-weight: 600; letter-spacing: 1px; color: #e2eaf6; }
+.wordmark span { color: #5ba3e0; }
+.wm-sub { font-size: 10px; color: #4a6280; letter-spacing: 2px; text-transform: uppercase; margin-top: 1px; }
+nav { display: flex; gap: 28px; }
+nav a { font-size: 13px; font-weight: 400; color: #4a6280; text-decoration: none; }
+nav a.active { color: #e2eaf6; font-weight: 500; }
+.status { display: flex; align-items: center; gap: 7px; }
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: #3aaa6e; box-shadow: 0 0 8px #3aaa6e; }
+.status-txt { font-size: 12px; font-weight: 500; color: #3aaa6e; letter-spacing: .5px; }
+
+.hero {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 64px 48px 52px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  background: linear-gradient(135deg, rgba(91,163,224,0.04) 0%, transparent 60%);
+}
+.hero-tag {
+  font-size: 11px; font-weight: 500; letter-spacing: 3px; text-transform: uppercase;
+  color: #5ba3e0; display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+}
+.hero-tag::before { content:''; width: 24px; height: 1px; background: #5ba3e0; }
+.hero h1 { font-size: 48px; font-weight: 300; line-height: 1.1; color: #e2eaf6; margin-bottom: 16px; }
+.hero h1 b { font-weight: 700; color: #f0f6ff; }
+.hero p { font-size: 14px; font-weight: 400; color: #4a6280; }
+
+.stats { display: grid; grid-template-columns: repeat(4,1fr); border-bottom: 1px solid rgba(255,255,255,0.06); }
+.stat { padding: 28px 36px; }
+.stat + .stat { border-left: 1px solid rgba(255,255,255,0.06); }
+.stat-lbl { font-size: 11px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase; color: #4a6280; margin-bottom: 10px; }
+.stat-val { font-size: 38px; font-weight: 300; line-height: 1; }
+
+.section { padding: 40px 48px 60px; }
+.sec-head { margin-bottom: 28px; }
+.sec-head h2 { font-size: 16px; font-weight: 600; color: #e2eaf6; margin-bottom: 4px; }
+.sec-head p  { font-size: 12px; font-weight: 400; color: #4a6280; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+
+.card {
+  background: #111827;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  padding: 22px 24px;
+  transition: border-color .2s;
+}
+.card.activo  { border-color: rgba(58,170,110,0.3);  background: linear-gradient(145deg,#111827,rgba(58,170,110,0.05)); }
+.card.dev     { border-color: rgba(91,163,224,0.25); background: linear-gradient(145deg,#111827,rgba(91,163,224,0.05)); }
+
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.card-icon-num { display: flex; align-items: center; gap: 10px; }
+.card-emoji { font-size: 20px; }
+.card-num { font-size: 10px; font-weight: 600; color: #2a3a50; letter-spacing: 2px; text-transform: uppercase; }
+
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 600; letter-spacing: .8px;
+  padding: 4px 12px; border-radius: 20px; text-transform: uppercase;
+}
+.badge-op  { color: #3aaa6e; background: rgba(58,170,110,0.12);  border: 1px solid rgba(58,170,110,0.3);  }
+.badge-dev { color: #5ba3e0; background: rgba(91,163,224,0.12);  border: 1px solid rgba(91,163,224,0.3);  }
+.badge-pnd { color: #4a6280; background: rgba(74,98,128,0.10);   border: 1px solid rgba(74,98,128,0.2);   }
+.badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+.card h3 { font-size: 15px; font-weight: 600; color: #e2eaf6; margin-bottom: 6px; }
+.card p  { font-size: 12px; font-weight: 400; color: #4a6280; }
+
+.card-cta { margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(91,163,224,0.12); }
+.card.activo .card-cta { border-top-color: rgba(58,170,110,0.15); }
+.cta-link { font-size: 12px; font-weight: 500; text-decoration: none; }
+.card.activo .cta-link { color: #3aaa6e; }
+.card.dev    .cta-link { color: #5ba3e0; }
+
+footer {
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 18px 48px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.ft-l { font-size: 13px; font-weight: 600; color: #2a3a50; letter-spacing: 1px; }
+.ft-l span { font-weight: 300; color: #2a3a50; margin-left: 6px; }
+.ft-r { font-size: 11px; color: #1e2c3d; letter-spacing: .5px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <svg width="38" height="38" viewBox="0 0 80 80" fill="none">
+      <defs>
+        <radialGradient id="hg" cx="38%" cy="35%" r="65%"><stop offset="0%" stop-color="#1a3a5c"/><stop offset="100%" stop-color="#0a1628"/></radialGradient>
+        <clipPath id="hc"><circle cx="40" cy="40" r="34"/></clipPath>
+        <filter id="hglow"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <circle cx="40" cy="40" r="34" fill="url(#hg)"/>
+      <g clip-path="url(#hc)" stroke="rgba(110,170,223,0.18)" stroke-width="0.7" fill="none">
+        <ellipse cx="40" cy="40" rx="34" ry="10"/>
+        <ellipse cx="40" cy="40" rx="34" ry="22"/>
+        <ellipse cx="40" cy="40" rx="34" ry="32"/>
+        <line x1="40" y1="6" x2="40" y2="74"/>
+        <ellipse cx="40" cy="40" rx="17" ry="34"/>
+        <ellipse cx="40" cy="40" rx="28" ry="34"/>
+      </g>
+      <g clip-path="url(#hc)" stroke="#6eaadf" stroke-width="0.9" fill="none" stroke-opacity="0.4">
+        <path d="M22 32 Q32 14 50 22"/><path d="M50 22 Q62 28 58 44"/>
+        <path d="M22 32 Q20 50 30 58"/><path d="M14 42 Q18 36 22 32"/>
+      </g>
+      <path d="M22 32 Q32 14 50 22" stroke="#b8d8f8" stroke-width="1.5" fill="none" class="hr1" stroke-linecap="round"/>
+      <path d="M50 22 Q62 28 58 44" stroke="#b8d8f8" stroke-width="1.5" fill="none" class="hr2" stroke-linecap="round"/>
+      <path d="M14 42 Q18 36 22 32" stroke="#b8d8f8" stroke-width="1.5" fill="none" class="hr4" stroke-linecap="round"/>
+      <g filter="url(#hglow)">
+        <circle class="n1" cx="22" cy="32" r="2.8" fill="#7bbcf0"/>
+        <circle class="n2" cx="50" cy="22" r="2.5" fill="#7bbcf0"/>
+        <circle class="n3" cx="58" cy="44" r="2.5" fill="#7bbcf0"/>
+        <circle class="n5" cx="14" cy="42" r="2"   fill="#7bbcf0"/>
+      </g>
+      <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(110,170,223,0.35)" stroke-width="1"/>
+      <ellipse cx="32" cy="28" rx="9" ry="5" fill="rgba(255,255,255,0.05)" transform="rotate(-20,32,28)"/>
+    </svg>
+    <div>
+      <div class="wordmark">Infinite<span>X</span></div>
+      <div class="wm-sub">Sistema Logístico</div>
+    </div>
+  </div>
+
+  <nav>
+    <a href="#" class="active">Dashboard</a>
+    <a href="#">Agentes</a>
+    <a href="#">Historial</a>
+    <a href="#">Config</a>
+  </nav>
+
+  <div class="status">
+    <span class="status-dot dot"></span>
+    <span class="status-txt">Sistema Activo</span>
+  </div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div>
+    <div class="hero-tag">Panel de Control — Sicoben Ediciones</div>
+    <h1>Sistema de<br><b>Agentes Logísticos</b></h1>
+    <p>Kadi Internacional S.A. · Panama</p>
+  </div>
+
+  <svg width="260" height="260" viewBox="0 0 200 200" fill="none">
+    <defs>
+      <radialGradient id="bg2" cx="36%" cy="34%" r="65%"><stop offset="0%" stop-color="#0e2a50"/><stop offset="100%" stop-color="#060e1e"/></radialGradient>
+      <clipPath id="gc2"><circle cx="100" cy="100" r="90"/></clipPath>
+      <filter id="glow2"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    </defs>
+    <circle cx="100" cy="100" r="96" fill="none" stroke="rgba(110,170,223,0.07)" stroke-width="4"/>
+    <circle cx="100" cy="100" r="90" fill="url(#bg2)"/>
+    <g clip-path="url(#gc2)" stroke="rgba(110,170,223,0.18)" stroke-width="0.8" fill="none">
+      <ellipse cx="100" cy="100" rx="90" ry="22"/>
+      <ellipse cx="100" cy="100" rx="90" ry="46"/>
+      <ellipse cx="100" cy="100" rx="90" ry="68"/>
+      <ellipse cx="100" cy="100" rx="90" ry="82"/>
+      <line x1="100" y1="10" x2="100" y2="190"/>
+      <ellipse cx="100" cy="100" rx="44" ry="90"/>
+      <ellipse cx="100" cy="100" rx="72" ry="90"/>
+    </g>
+    <g clip-path="url(#gc2)" stroke="#6eaadf" stroke-width="1.2" fill="none" stroke-opacity="0.35">
+      <path d="M54 88 Q78 40 128 62"/>
+      <path d="M54 88 Q70 60 88 52"/>
+      <path d="M88 52 Q108 42 128 62"/>
+      <path d="M128 62 Q148 80 144 108"/>
+      <path d="M54 88 Q48 116 60 140"/>
+      <path d="M36 68 Q44 78 54 88"/>
+      <path d="M144 108 Q130 140 110 148"/>
+      <path d="M110 148 Q80 158 60 140"/>
+    </g>
+    <path d="M54 88 Q78 40 128 62"    stroke="#c8e4ff" stroke-width="2" fill="none" class="r1" stroke-linecap="round"/>
+    <path d="M88 52 Q108 42 128 62"   stroke="#c8e4ff" stroke-width="2" fill="none" class="r2" stroke-linecap="round"/>
+    <path d="M54 88 Q48 116 60 140"   stroke="#c8e4ff" stroke-width="2" fill="none" class="r3" stroke-linecap="round"/>
+    <path d="M128 62 Q148 80 144 108" stroke="#c8e4ff" stroke-width="2" fill="none" class="r4" stroke-linecap="round"/>
+    <path d="M36 68 Q44 78 54 88"     stroke="#c8e4ff" stroke-width="2" fill="none" class="r5" stroke-linecap="round"/>
+    <path d="M110 148 Q80 158 60 140" stroke="#c8e4ff" stroke-width="2" fill="none" class="r6" stroke-linecap="round"/>
+    <g filter="url(#glow2)">
+      <circle class="n1" cx="54"  cy="88"  r="5.5" fill="#7bbcf0"/>
+      <circle class="n2" cx="128" cy="62"  r="4.5" fill="#7bbcf0"/>
+      <circle class="n3" cx="88"  cy="52"  r="4"   fill="#7bbcf0"/>
+      <circle class="n4" cx="144" cy="108" r="4"   fill="#7bbcf0"/>
+      <circle class="n5" cx="60"  cy="140" r="3.5" fill="#7bbcf0"/>
+      <circle class="n6" cx="36"  cy="68"  r="3.5" fill="#7bbcf0"/>
+      <circle class="n7" cx="110" cy="148" r="3.5" fill="#7bbcf0"/>
+    </g>
+    <circle cx="54" cy="88" r="11" fill="none" stroke="#7bbcf0" stroke-width="0.8" stroke-opacity="0.3" class="halo"/>
+    <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(110,170,223,0.3)" stroke-width="1"/>
+    <ellipse cx="78" cy="68" rx="22" ry="12" fill="rgba(255,255,255,0.05)" transform="rotate(-25,78,68)"/>
+  </svg>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat"><p class="stat-lbl">Total Agentes</p><p class="stat-val" style="color:#e2eaf6">7</p></div>
+  <div class="stat"><p class="stat-lbl">En Desarrollo</p><p class="stat-val" style="color:#5ba3e0">1</p></div>
+  <div class="stat"><p class="stat-lbl">Pendientes</p><p class="stat-val" style="color:#7a8fa8">5</p></div>
+  <div class="stat"><p class="stat-lbl">Operativos</p><p class="stat-val" style="color:#3aaa6e">1</p></div>
+</div>
+
+<!-- AGENTS -->
+<div class="section">
+  <div class="sec-head">
+    <h2>Agentes del Sistema</h2>
+    <p>Módulos de inteligencia artificial especializados</p>
+  </div>
+  <div class="grid">
+
+    <div class="card dev">
+      <div class="card-top">
+        <div class="card-icon-num"><span class="card-emoji">⚙️</span><span class="card-num">#01</span></div>
+        <span class="badge badge-dev"><span class="badge-dot"></span>En Desarrollo</span>
+      </div>
+      <h3>Orquestador Central</h3>
+      <p>Hub / Router — Aprobaciones</p>
+      <div class="card-cta"><a href="#" class="cta-link">Abrir módulo →</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-icon-num"><span class="card-emoji">📦</span><span class="card-num">#02</span></div>
+        <span class="badge badge-pnd">Pendiente</span>
+      </div>
+      <h3>Agente Bodega</h3><p>Bodega Anker</p>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-icon-num"><span class="card-emoji">📊</span><span class="card-num">#03</span></div>
+        <span class="badge badge-pnd">Pendiente</span>
+      </div>
+      <h3>Agente Ventas</h3><p>Comercial / Ventas</p>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-icon-num"><span class="card-emoji">🚚</span><span class="card-num">#04</span></div>
+        <span class="badge badge-pnd">Pendiente</span>
+      </div>
+      <h3>Agente Despacho</h3><p>Despacho y Entrega</p>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-icon-num"><span class="card-emoji">👥</span><span class="card-num">#05</span></div>
+        <span class="badge badge-pnd">Pendiente</span>
+      </div>
+      <h3>Agente Clientes</h3><p>Servicio al Cliente</p>
+    </div>
+
+    <div class="card activo">
+      <div class="card-top">
+        <div class="card-icon-num"><span class="card-emoji">🌐</span><span class="card-num">#06</span></div>
+        <span class="badge badge-op"><span class="badge-dot"></span>Operativo</span>
+      </div>
+      <h3>Agente Tráfico</h3><p>Produccion / Logística</p>
+      <div class="card-cta"><a href="#" class="cta-link">Abrir módulo →</a></div>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-icon-num"><span class="card-emoji">🗂️</span><span class="card-num">#07</span></div>
+        <span class="badge badge-pnd">Pendiente</span>
+      </div>
+      <h3>Agente Administración</h3><p>Administración General</p>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="ft-l">InfiniteX<span>· Sicoben Ediciones Panama</span></div>
+  <span class="ft-r">KADI INTERNATIONAL S.A. © 2026</span>
+</footer>
+
+</body>
+</html>
