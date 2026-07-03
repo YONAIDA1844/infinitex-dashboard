@@ -73,7 +73,7 @@ export default function AgenteTrafico() {
 
   useEffect(() => {
     fetch(`${SUPABASE_URL}/rest/v1/trafico_embarques?activo=eq.true&order=created_at.asc`, {
-      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Accept-Profile': 'test' },
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
     })
       .then(r => r.json())
       .then(data => {
