@@ -39,46 +39,7 @@ const EQUIPO = [
   { nombre: 'Asistente Ventas', email: 'asistente.ventas@sicobenediciones.com' },
 ];
 
-const EMBARQUES_DEMO = [
-  {
-    id: 'emb-001',
-    bl: 'MAEU123456789',
-    proveedor: 'ANKER INNOVATIONS',
-    contenedor: '40HC',
-    origen: 'Shanghai, China',
-    destino_puerto: 'Manzanillo, Panama',
-    etd: '2026-07-10',
-    eta: '2026-08-02',
-    estado: 'En Transito',
-    peso_kg: 18500,
-    cbm: 42.3,
-    pallets: 18,
-    naviera: 'Maersk',
-    incoterm: 'FOB',
-    descripcion: 'Cargadores, cables y accesorios electronicos',
-    documentos: { bl: true, packing_list: true, factura: true, permiso: false },
-    notas: 'Revision de aduana pendiente en destino',
-  },
-  {
-    id: 'emb-002',
-    bl: 'CMDU987654321',
-    proveedor: 'NINGBO LOGISTICS CO',
-    contenedor: '20ST',
-    origen: 'Ningbo, China',
-    destino_puerto: 'Cristobal, Panama',
-    etd: '2026-07-18',
-    eta: '2026-08-15',
-    estado: 'En Puerto Origen',
-    peso_kg: 9200,
-    cbm: 21.7,
-    pallets: 10,
-    naviera: 'CMA CGM',
-    incoterm: 'CIF',
-    descripcion: 'Productos electricos de baja tension',
-    documentos: { bl: false, packing_list: true, factura: true, permiso: true },
-    notas: 'BL pendiente de emision por naviera',
-  },
-];
+const EMBARQUES_DEMO: any[] = [];
 
 const FORM_VACIO = {
   bl: '', proveedor: '', naviera: '', incoterm: 'FOB',
