@@ -68,6 +68,8 @@ export default function AgenteTrafico() {
   const [notifEstado, setNotifEstado] = useState('');
   const [guardando, setGuardando] = useState(false);
   const [notifMsg, setNotifMsg] = useState('');
+  const [notificando, setNotificando] = useState(false);
+  const [notificadoBl, setNotificadoBl] = useState('');
   const [importando, setImportando] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -326,7 +328,9 @@ export default function AgenteTrafico() {
   };
 
   const handleNotificarEquipo = async (embarque: any, autoTrigger = false) => {
-    if (!embarque) return;
+    if (!embarque || notificando) return;
+    setNotificando(true);
+    setNotificadoBl('');
     setNotifEstado('enviando');
     setNotifMsg(autoTrigger ? `Cambio de estado detectado — encolando notificación automática...` : `Enviando al Orquestador Central para autorización...`);
 
@@ -380,15 +384,20 @@ export default function AgenteTrafico() {
       });
       if (res.ok || res.status === 201) {
         setNotifEstado('ok');
-        setNotifMsg(`✅ ${autoTrigger ? 'Notificación automática' : 'Notificación'} de ${embarque.bl} encolada — pendiente de aprobación del Orquestador Central.`);
+        setNotifMsg(`✅ Notificación de ${embarque.bl} encolada — pendiente de aprobación del Orquestador Central.`);
+        setNotificadoBl(embarque.bl);
+        setTimeout(() => { setNotificadoBl(''); setNotifMsg(''); setNotifEstado(''); }, 4000);
       } else {
         setNotifEstado('error');
         setNotifMsg(`Error al encolar notificación (${res.status}).`);
+        setTimeout(() => { setNotifMsg(''); setNotifEstado(''); }, 5000);
       }
     } catch (e: any) {
       setNotifEstado('error');
       setNotifMsg('Error de conexión: ' + e.message);
+      setTimeout(() => { setNotifMsg(''); setNotifEstado(''); }, 5000);
     }
+    setNotificando(false);
   };
 
   const handleCambiarEstado = async (nuevoEstado: string) => {
@@ -846,14 +855,18 @@ export default function AgenteTrafico() {
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleNotificarEquipo(emb); }}
+                    disabled={notificando}
                     style={{
-                      marginTop: 10, width: '100%', background: 'rgba(88,166,255,0.07)',
-                      color: '#58a6ff', border: '1px solid #58a6ff33',
+                      marginTop: 10, width: '100%',
+                      background: notificadoBl === emb.bl ? 'rgba(63,185,80,0.15)' : notificando ? 'rgba(88,166,255,0.04)' : 'rgba(88,166,255,0.07)',
+                      color: notificadoBl === emb.bl ? '#3fb950' : notificando ? '#58a6ff88' : '#58a6ff',
+                      border: `1px solid ${notificadoBl === emb.bl ? '#3fb95055' : '#58a6ff33'}`,
                       borderRadius: 6, padding: '6px 0', fontSize: 12,
-                      cursor: 'pointer', fontWeight: 600, letterSpacing: 0.5,
+                      cursor: notificando ? 'not-allowed' : 'pointer', fontWeight: 600, letterSpacing: 0.5,
+                      transition: 'all 0.3s ease',
                     }}
                   >
-                    🔔 Notificar a Producción
+                    {notificando && notificadoBl === '' ? '⏳ Enviando...' : notificadoBl === emb.bl ? '✅ Encolado' : '🔔 Notificar a Producción'}
                   </button>
                 </div>
               ))}
@@ -900,13 +913,17 @@ export default function AgenteTrafico() {
                     </div>
                     <button
                       onClick={() => handleNotificarEquipo(embarqueSeleccionado)}
+                      disabled={notificando}
                       style={{
-                        background: '#58a6ff', color: '#0d1117',
+                        background: notificadoBl === embarqueSeleccionado?.bl ? '#3fb950' : notificando ? '#21262d' : '#58a6ff',
+                        color: notificando ? '#8b949e' : '#0d1117',
                         border: 'none', borderRadius: 8,
-                        padding: '8px 18px', fontSize: 13, cursor: 'pointer', fontWeight: 700,
+                        padding: '8px 18px', fontSize: 13,
+                        cursor: notificando ? 'not-allowed' : 'pointer', fontWeight: 700,
+                        transition: 'all 0.3s ease', minWidth: 180,
                       }}
                     >
-                      🔔 Notificar a Producción
+                      {notificando ? '⏳ Enviando...' : notificadoBl === embarqueSeleccionado?.bl ? '✅ Encolado' : '🔔 Notificar a Producción'}
                     </button>
                   </div>
                   <p style={{ fontSize: 11, color: '#8b949e', marginTop: 6, marginBottom: 0 }}>
