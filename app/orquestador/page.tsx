@@ -4,11 +4,38 @@ import { useEffect, useState } from 'react';
 const SUPABASE_URL = 'https://aoueqkinzrhawzfsiulv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvdWVxa2luenJoYXd6ZnNpdWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDkyMTAsImV4cCI6MjA5NjYyNTIxMH0.wjtwtkUdWvgV188EcuK-4qbAilJc0Q-PuhVD646nue0';
 
+function playTone(tipo: 'aprobado' | 'rechazado') {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    if (tipo === 'aprobado') {
+      osc.frequency.setValueAtTime(523, ctx.currentTime);
+      osc.frequency.setValueAtTime(659, ctx.currentTime + 0.12);
+      osc.frequency.setValueAtTime(784, ctx.currentTime + 0.24);
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.5);
+    } else {
+      osc.frequency.setValueAtTime(300, ctx.currentTime);
+      osc.frequency.setValueAtTime(200, ctx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.4);
+    }
+  } catch (_) {}
+}
+
 export default function OrquestadorPage() {
   const [mensajes, setMensajes] = useState<any[]>([]);
   const [historial, setHistorial] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
   const [procesando, setProcesando] = useState<string | null>(null);
+  const [resultados, setResultados] = useState<Record<string, 'aprobado' | 'rechazado'>>({});
   const [notif, setNotif] = useState('');
   const [notifTipo, setNotifTipo] = useState('ok');
   const [vistaHistorial, setVistaHistorial] = useState(false);
@@ -68,9 +95,14 @@ export default function OrquestadorPage() {
           });
         } catch (_) {}
 
-        setMensajes(prev => prev.filter(m => m.id !== msg.id));
+        setResultados(prev => ({ ...prev, [msg.id]: 'aprobado' }));
+        playTone('aprobado');
         setNotifTipo('ok');
-        setNotif(`✅ Aprobado y enviado: ${msg.payload?.asunto || msg.id}`);
+        setNotif(`✅ Aprobado y enviado al equipo: ${msg.payload?.asunto || msg.id}`);
+        setTimeout(() => {
+          setMensajes(prev => prev.filter(m => m.id !== msg.id));
+          setResultados(prev => { const r = { ...prev }; delete r[msg.id]; return r; });
+        }, 2500);
       } else {
         setNotifTipo('error');
         setNotif(`Error al aprobar (${res.status}).`);
@@ -98,9 +130,14 @@ export default function OrquestadorPage() {
       });
 
       if (res.ok) {
-        setMensajes(prev => prev.filter(m => m.id !== msg.id));
+        setResultados(prev => ({ ...prev, [msg.id]: 'rechazado' }));
+        playTone('rechazado');
         setNotifTipo('ok');
         setNotif(`Notificación rechazada: ${msg.payload?.embarque?.bl || 'sin BL'}`);
+        setTimeout(() => {
+          setMensajes(prev => prev.filter(m => m.id !== msg.id));
+          setResultados(prev => { const r = { ...prev }; delete r[msg.id]; return r; });
+        }, 2500);
       } else {
         setNotifTipo('error');
         setNotif(`Error al rechazar (${res.status}).`);
@@ -227,12 +264,14 @@ export default function OrquestadorPage() {
                   const emb = msg.payload?.embarque || {};
                   const urgente = msg.priority === 1;
                   const auto = msg.payload?.automatico;
+                  const resultado = resultados[msg.id];
                   return (
                     <div key={msg.id} style={{
-                      background: '#161b22',
-                      border: `1px solid ${urgente ? '#f8514955' : '#21262d'}`,
-                      borderLeft: `3px solid ${urgente ? '#f85149' : '#58a6ff'}`,
+                      background: resultado === 'aprobado' ? 'rgba(63,185,80,0.08)' : resultado === 'rechazado' ? 'rgba(248,81,73,0.08)' : '#161b22',
+                      border: `1px solid ${resultado === 'aprobado' ? '#3fb95055' : resultado === 'rechazado' ? '#f8514955' : urgente ? '#f8514955' : '#21262d'}`,
+                      borderLeft: `3px solid ${resultado === 'aprobado' ? '#3fb950' : resultado === 'rechazado' ? '#f85149' : urgente ? '#f85149' : '#58a6ff'}`,
                       borderRadius: 12, padding: 24,
+                      transition: 'all 0.4s ease',
                     }}>
                       {/* Header msg */}
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
@@ -248,30 +287,44 @@ export default function OrquestadorPage() {
                           </p>
                         </div>
                         {/* Botones aprobación */}
-                        <div style={{ display: 'flex', gap: 10 }}>
-                          <button
-                            onClick={() => handleAprobar(msg)}
-                            disabled={procesando === msg.id}
-                            style={{
-                              background: procesando === msg.id ? '#21262d' : '#3fb950',
-                              color: procesando === msg.id ? '#8b949e' : '#0d1117',
-                              border: 'none', borderRadius: 8, padding: '10px 22px',
-                              fontSize: 14, fontWeight: 700, cursor: procesando === msg.id ? 'not-allowed' : 'pointer',
-                            }}
-                          >
-                            {procesando === msg.id ? 'Procesando...' : '✓ Aprobar y Enviar'}
-                          </button>
-                          <button
-                            onClick={() => handleRechazar(msg)}
-                            disabled={procesando === msg.id}
-                            style={{
-                              background: 'transparent', color: '#f85149',
-                              border: '1px solid #f8514944', borderRadius: 8,
-                              padding: '10px 16px', fontSize: 14, cursor: procesando === msg.id ? 'not-allowed' : 'pointer',
-                            }}
-                          >
-                            ✕ Rechazar
-                          </button>
+                        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                          {resultado === 'aprobado' ? (
+                            <div style={{ background: 'rgba(63,185,80,0.15)', border: '1px solid #3fb95066', borderRadius: 8, padding: '10px 22px', fontSize: 14, fontWeight: 700, color: '#3fb950' }}>
+                              ✅ Aprobado — Enviado al equipo
+                            </div>
+                          ) : resultado === 'rechazado' ? (
+                            <div style={{ background: 'rgba(248,81,73,0.15)', border: '1px solid #f8514966', borderRadius: 8, padding: '10px 22px', fontSize: 14, fontWeight: 700, color: '#f85149' }}>
+                              ✕ Rechazado
+                            </div>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleAprobar(msg)}
+                                disabled={!!procesando}
+                                style={{
+                                  background: procesando === msg.id ? '#21262d' : '#3fb950',
+                                  color: procesando === msg.id ? '#8b949e' : '#0d1117',
+                                  border: 'none', borderRadius: 8, padding: '10px 22px',
+                                  fontSize: 14, fontWeight: 700, cursor: procesando ? 'not-allowed' : 'pointer',
+                                  transition: 'all 0.2s ease', minWidth: 160,
+                                }}
+                              >
+                                {procesando === msg.id ? '⏳ Aprobando...' : '✓ Aprobar y Enviar'}
+                              </button>
+                              <button
+                                onClick={() => handleRechazar(msg)}
+                                disabled={!!procesando}
+                                style={{
+                                  background: 'transparent', color: procesando ? '#8b949e' : '#f85149',
+                                  border: `1px solid ${procesando ? '#30363d' : '#f8514944'}`, borderRadius: 8,
+                                  padding: '10px 16px', fontSize: 14, cursor: procesando ? 'not-allowed' : 'pointer',
+                                  transition: 'all 0.2s ease',
+                                }}
+                              >
+                                {procesando === msg.id ? '⏳ Rechazando...' : '✕ Rechazar'}
+                              </button>
+                            </>
+                          )}
                         </div>
                       </div>
 
