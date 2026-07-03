@@ -464,20 +464,52 @@ export default function AgenteTrafico() {
     letterSpacing: 1, marginBottom: 4, display: 'block',
   };
 
+  const GlobeSmall = () => (
+    <svg width="36" height="36" viewBox="0 0 80 80" fill="none">
+      <defs>
+        <radialGradient id="hgat" cx="38%" cy="35%" r="65%"><stop offset="0%" stopColor="#1a3a5c"/><stop offset="100%" stopColor="#0a1628"/></radialGradient>
+        <clipPath id="hcat"><circle cx="40" cy="40" r="34"/></clipPath>
+        <filter id="hglowat"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      <circle cx="40" cy="40" r="34" fill="url(#hgat)"/>
+      <g clipPath="url(#hcat)" stroke="rgba(110,170,223,0.18)" strokeWidth="0.7" fill="none">
+        <ellipse cx="40" cy="40" rx="34" ry="10"/><ellipse cx="40" cy="40" rx="34" ry="22"/><ellipse cx="40" cy="40" rx="34" ry="32"/>
+        <line x1="40" y1="6" x2="40" y2="74"/><ellipse cx="40" cy="40" rx="17" ry="34"/><ellipse cx="40" cy="40" rx="28" ry="34"/>
+      </g>
+      <g clipPath="url(#hcat)" stroke="#6eaadf" strokeWidth="0.9" fill="none" strokeOpacity="0.4">
+        <path d="M22 32 Q32 14 50 22"/><path d="M50 22 Q62 28 58 44"/><path d="M14 42 Q18 36 22 32"/>
+      </g>
+      <g filter="url(#hglowat)">
+        <circle cx="22" cy="32" r="2.8" fill="#7bbcf0"/><circle cx="50" cy="22" r="2.5" fill="#7bbcf0"/>
+        <circle cx="58" cy="44" r="2.5" fill="#7bbcf0"/><circle cx="14" cy="42" r="2" fill="#7bbcf0"/>
+      </g>
+      <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(110,170,223,0.35)" strokeWidth="1"/>
+    </svg>
+  );
+
   return (
-    <div style={{ minHeight: '100vh', background: '#0d1117', color: '#e6edf3', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#0d1421', color: '#e2eaf6', fontFamily: 'Inter, system-ui, sans-serif' }}>
       {/* Header */}
-      <div style={{ borderBottom: '1px solid #21262d', padding: '0 32px', display: 'flex', alignItems: 'center', height: 56, gap: 24 }}>
-        <span style={{ fontWeight: 700, fontSize: 16, letterSpacing: 3 }}>
-          <span style={{ color: '#58a6ff' }}>INFINITE</span>
-          <span style={{ color: '#ffffff' }}> X</span>
-        </span>
-        <span style={{ color: '#8b949e', fontSize: 12, letterSpacing: 2 }}>AGENTE DE TRAFICO</span>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 24, alignItems: 'center' }}>
-          <a href="/" style={{ color: '#8b949e', fontSize: 13, textDecoration: 'none' }}>← Dashboard</a>
-          <span style={{ color: '#3fb950', fontSize: 13 }}>● Operativo</span>
+      <header style={{ borderBottom: '1px solid rgba(255,255,255,0.07)', padding: '0 40px', display: 'flex', alignItems: 'center', height: 64, gap: 16, backgroundColor: '#0d1421', position: 'sticky', top: 0, zIndex: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <GlobeSmall />
+          <div>
+            <div style={{ fontSize: 17, fontWeight: 600, letterSpacing: 1, color: '#e2eaf6' }}>
+              Infinite<span style={{ color: '#5ba3e0' }}>X</span>
+            </div>
+            <div style={{ fontSize: 10, color: '#4a6280', letterSpacing: 2, textTransform: 'uppercase' }}>Sistema Logístico</div>
+          </div>
         </div>
-      </div>
+        <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.08)', margin: '0 8px' }}/>
+        <span style={{ fontSize: 12, fontWeight: 500, color: '#5ba3e0', letterSpacing: 1, textTransform: 'uppercase' }}>Agente de Tráfico</span>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 20, alignItems: 'center' }}>
+          <a href="/" style={{ color: '#4a6280', fontSize: 13, textDecoration: 'none', fontWeight: 400 }}>← Dashboard</a>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#3aaa6e', boxShadow: '0 0 7px #3aaa6e', display: 'inline-block' }}/>
+            <span style={{ color: '#3aaa6e', fontSize: 12, fontWeight: 500 }}>Operativo</span>
+          </div>
+        </div>
+      </header>
 
       <div style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 32px' }}>
         {/* Title */}
@@ -1065,9 +1097,9 @@ export default function AgenteTrafico() {
       </div>
 
       {/* Footer */}
-      <div style={{ borderTop: '1px solid #21262d', marginTop: 40, padding: '16px 32px',
-        display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#8b949e' }}>
-        <span>INFINITE X — Sicoben Ediciones Panama</span>
+      <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 40, padding: '16px 40px',
+        display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#2d3f55' }}>
+        <span style={{ fontWeight: 500, color: '#3d4f66' }}>InfiniteX · Sicoben Ediciones Panama</span>
         <span>KADI INTERNATIONAL S.A. © 2026</span>
       </div>
 
