@@ -870,6 +870,16 @@ export default function AgenteTrafico() {
           >
             📊 Ver Reporte Diario
           </button>
+          <button
+            onClick={() => { setVerComparador(true); setTimeout(() => document.getElementById('comparador-cotizaciones')?.scrollIntoView({ behavior: 'smooth' }), 150); }}
+            style={{
+              background: 'rgba(167,139,250,0.12)', color: '#a78bfa',
+              border: '1px solid #a78bfa44', borderRadius: 8, padding: '10px 18px',
+              fontSize: 13, cursor: 'pointer', fontWeight: 600,
+            }}
+          >
+            📄 Comparar Cotizaciones
+          </button>
         </div>
 
         {/* PANEL DE GESTIÓN DE PROVEEDORES */}
@@ -1458,7 +1468,7 @@ export default function AgenteTrafico() {
       </div>
 
       {/* COMPARADOR DE COTIZACIONES */}
-      <div style={{ maxWidth: 1400, margin: '32px auto 0', padding: '0 32px' }}>
+      <div id="comparador-cotizaciones" style={{ maxWidth: 1400, margin: '32px auto 0', padding: '0 32px' }}>
         <button
           onClick={() => setVerComparador(v => !v)}
           style={{
