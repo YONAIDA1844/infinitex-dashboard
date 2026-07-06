@@ -563,6 +563,26 @@ export default function AgenteTrafico() {
     ev.target.value = '';
   };
 
+  const handleDescargarReporteCotizaciones = async () => {
+    const el = document.getElementById('reporte-cotizaciones');
+    if (!el) return;
+    const { default: html2canvas } = await import('html2canvas');
+    const { jsPDF } = await import('jspdf');
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#0d1117', useCORS: true });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pdfW = pdf.internal.pageSize.getWidth();
+    const pdfH = (canvas.height * pdfW) / canvas.width;
+    let yPos = 0;
+    const pageH = pdf.internal.pageSize.getHeight();
+    while (yPos < pdfH) {
+      if (yPos > 0) pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, -yPos, pdfW, pdfH);
+      yPos += pageH;
+    }
+    pdf.save(`InfiniteX_Comparativa_Cotizaciones_${new Date().toISOString().slice(0,10)}.pdf`);
+  };
+
   const handleAnalizarCotizaciones = async () => {
     if (cotizacionesPDF.length < 1) return;
     setAnalizando(true);
@@ -1576,7 +1596,44 @@ export default function AgenteTrafico() {
             {/* RESULTADOS — TARJETAS NUMERADAS */}
             {resultadoComparativa && (
               <div>
-                {/* Título */}
+                {/* Botón descargar (fuera del área imprimible) */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+                  <button
+                    onClick={handleDescargarReporteCotizaciones}
+                    style={{
+                      background: 'rgba(63,185,80,0.12)', color: '#3fb950',
+                      border: '1px solid #3fb95044', borderRadius: 8,
+                      padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                    }}
+                  >
+                    ↓ Descargar PDF
+                  </button>
+                </div>
+
+                {/* Área imprimible con logo */}
+                <div id="reporte-cotizaciones" style={{ background: '#0d1117', borderRadius: 12, padding: 24 }}>
+
+                {/* Header con logo InfiniteX */}
+                <div style={{
+                  background: 'linear-gradient(135deg,#1a2332,#2d4a6e)', borderRadius: 10,
+                  padding: '20px 24px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                }}>
+                  <div>
+                    <div style={{ fontSize: 10, color: '#7fb3d3', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 4 }}>InfiniteX · Agente de Tráfico</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: 1 }}>COMPARACIÓN DE COTIZACIONES</div>
+                    <div style={{ fontSize: 12, color: '#58a6ff', fontWeight: 600, marginTop: 4 }}>
+                      {resultadoComparativa.resultados.length} cotización(es) analizadas · {new Date().toLocaleDateString('es-PA', { day: '2-digit', month: 'long', year: 'numeric' })}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 2 }}>
+                      <span style={{ color: '#58a6ff' }}>INFINITE</span><span style={{ color: '#4a6280' }}> X</span>
+                    </div>
+                    <div style={{ fontSize: 10, color: '#4a6280', marginTop: 2 }}>Sicoben Ediciones</div>
+                  </div>
+                </div>
+
+                {/* Título sección */}
                 <div style={{ fontSize: 11, color: '#8b949e', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 16, fontWeight: 700 }}>
                   RESULTADO DEL ANÁLISIS — {resultadoComparativa.resultados.length} COTIZACIONES
                 </div>
@@ -1692,6 +1749,16 @@ export default function AgenteTrafico() {
                     </p>
                   </div>
                 )}
+
+                {/* Footer del reporte */}
+                <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid #21262d', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ fontSize: 10, color: '#4a6280' }}>Generado por InfiniteX · Agente de Tráfico · Sicoben Ediciones</div>
+                  <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: 2 }}>
+                    <span style={{ color: '#58a6ff' }}>INFINITE</span><span style={{ color: '#4a6280' }}> X</span>
+                  </div>
+                </div>
+
+                </div>{/* fin área imprimible */}
               </div>
             )}
           </div>
