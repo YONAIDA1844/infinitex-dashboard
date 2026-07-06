@@ -571,17 +571,18 @@ export default function AgenteTrafico() {
     if (!el) return;
     const { default: html2canvas } = await import('html2canvas');
     const { jsPDF } = await import('jspdf');
-    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#0d1117', useCORS: true });
+    const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#f0f4f8', useCORS: true });
     const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-    const pdfW = pdf.internal.pageSize.getWidth();
-    const pdfH = (canvas.height * pdfW) / canvas.width;
-    let yPos = 0;
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
     const pageH = pdf.internal.pageSize.getHeight();
-    while (yPos < pdfH) {
+    const imgH = (canvas.height * pageW) / canvas.width;
+    let yPos = 0;
+    while (yPos < imgH) {
       if (yPos > 0) pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, -yPos, pdfW, pdfH);
+      pdf.addImage(imgData, 'PNG', 0, -yPos, pageW, imgH);
       yPos += pageH;
+      if (imgH - yPos < 5) break; // evitar página casi vacía al final
     }
     pdf.save(`InfiniteX_Comparativa_Cotizaciones_${new Date().toISOString().slice(0,10)}.pdf`);
   };
