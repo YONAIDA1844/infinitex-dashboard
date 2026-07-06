@@ -131,6 +131,8 @@ export default function AgenteTrafico() {
   const [analizando, setAnalizando] = useState(false);
   const [resultadoComparativa, setResultadoComparativa] = useState<any>(null);
   const [errorComparativa, setErrorComparativa] = useState('');
+  const [editandoCotizIdx, setEditandoCotizIdx] = useState<number|null>(null);
+  const [editCotizForm, setEditCotizForm] = useState<Record<string,string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -1609,26 +1611,109 @@ export default function AgenteTrafico() {
                 { key: 'incoterm',        label: 'INCOTERM'             },
                 { key: 'validez',         label: 'VALIDEZ'              },
               ];
+              const CAMPOS_EDIT = [
+                { key: 'agente_operador', label: 'Agente / Operador' },
+                { key: 'costo_total',     label: 'Monto Total'       },
+                { key: 'tiempo_transito', label: 'Días de Tránsito'  },
+                { key: 'naviera',         label: 'Naviera'           },
+                { key: 'tipo_contenedor', label: 'Tipo Contenedor'   },
+                { key: 'etd',             label: 'Salida ETD'        },
+                { key: 'eta',             label: 'Llegada ETA'       },
+                { key: 'dias_libres',     label: 'Días Libres'       },
+                { key: 'incoterm',        label: 'Incoterm'          },
+                { key: 'validez',         label: 'Validez'           },
+                { key: 'flete_maritimo',  label: 'Flete Marítimo'    },
+                { key: 'gastos_origen',   label: 'Gastos Origen'     },
+                { key: 'gastos_destino',  label: 'Gastos Destino'    },
+                { key: 'observaciones',   label: 'Observaciones'     },
+              ];
               const thStyle: React.CSSProperties = {
                 padding: '11px 14px', textAlign: 'center', fontSize: 10,
                 color: '#fff', letterSpacing: 1.5, textTransform: 'uppercase',
                 fontWeight: 700, whiteSpace: 'nowrap', background: '#1e3a5f',
                 borderRight: '1px solid rgba(255,255,255,0.1)',
               };
+
+              const handleAbrirEdicion = (i: number) => {
+                const d = rows[i]?.datos || {};
+                setEditCotizForm({ ...d });
+                setEditandoCotizIdx(i);
+              };
+              const handleGuardarEdicion = () => {
+                if (editandoCotizIdx === null) return;
+                setResultadoComparativa((prev: any) => {
+                  const nuevos = [...prev.resultados];
+                  nuevos[editandoCotizIdx] = { ...nuevos[editandoCotizIdx], datos: { ...editCotizForm } };
+                  return { ...prev, resultados: nuevos };
+                });
+                setEditandoCotizIdx(null);
+              };
+
               return (
                 <div>
-                  {/* Botones descarga — fuera del área capturada */}
-                  <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginBottom: 14 }}>
-                    <button onClick={handleDescargarReporteCotizaciones} style={{ background: 'rgba(88,166,255,0.12)', color: '#58a6ff', border: '1px solid #58a6ff44', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>↓ Descargar PDF</button>
-                    <button onClick={async () => {
-                      const el = document.getElementById('reporte-cotizaciones');
-                      if (!el) return;
-                      const { default: h2c } = await import('html2canvas');
-                      const canvas = await h2c(el, { scale: 2, backgroundColor: '#f0f4f8', useCORS: true });
-                      const a = document.createElement('a'); a.href = canvas.toDataURL('image/png');
-                      a.download = `InfiniteX_Comparativa_${new Date().toISOString().slice(0,10)}.png`; a.click();
-                    }} style={{ background: 'rgba(63,185,80,0.12)', color: '#3fb950', border: '1px solid #3fb95044', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>↓ Descargar Imagen</button>
+                  {/* BARRA DE ACCIONES — siempre visible */}
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, background: '#161b22', border: '1px solid #30363d', borderRadius: 10, padding: '10px 16px' }}>
+                    <div style={{ fontSize: 12, color: '#8b949e', fontWeight: 600 }}>
+                      📊 {rows.length} cotización(es) · {rec >= 0 ? `Recomendada: #${rec+1}` : 'Análisis listo'}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={handleDescargarReporteCotizaciones} style={{ background: 'linear-gradient(135deg,#1e3a5f,#2d4a6e)', color: '#58a6ff', border: '1px solid #58a6ff55', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        ⬇ PDF
+                      </button>
+                      <button onClick={async () => {
+                        const el = document.getElementById('reporte-cotizaciones');
+                        if (!el) return;
+                        const { default: h2c } = await import('html2canvas');
+                        const canvas = await h2c(el, { scale: 2, backgroundColor: '#f0f4f8', useCORS: true });
+                        const a = document.createElement('a'); a.href = canvas.toDataURL('image/png');
+                        a.download = `InfiniteX_Comparativa_${new Date().toISOString().slice(0,10)}.png`; a.click();
+                      }} style={{ background: 'linear-gradient(135deg,#1a3d1a,#1e4d2a)', color: '#3fb950', border: '1px solid #3fb95055', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        🖼 Imagen
+                      </button>
+                    </div>
                   </div>
+
+                  {/* MODAL EDITAR COTIZACIÓN */}
+                  {editandoCotizIdx !== null && (
+                    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+                      <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 14, padding: 28, width: '100%', maxWidth: 560, maxHeight: '85vh', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                          <div>
+                            <div style={{ fontSize: 16, fontWeight: 800, color: '#e6edf3' }}>✏ Editar Cotización #{editandoCotizIdx + 1}</div>
+                            <div style={{ fontSize: 11, color: '#8b949e', marginTop: 3 }}>{rows[editandoCotizIdx]?.nombre}</div>
+                          </div>
+                          <button onClick={() => setEditandoCotizIdx(null)} style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                          {CAMPOS_EDIT.map(({ key, label }) => (
+                            <div key={key} style={{ gridColumn: key === 'observaciones' ? '1 / -1' : undefined }}>
+                              <label style={{ display: 'block', fontSize: 10, color: '#8b949e', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>{label}</label>
+                              {key === 'observaciones' ? (
+                                <textarea
+                                  value={editCotizForm[key] || ''}
+                                  onChange={e => setEditCotizForm(p => ({ ...p, [key]: e.target.value }))}
+                                  rows={3}
+                                  style={{ width: '100%', background: '#0d1117', border: '1px solid #30363d', borderRadius: 6, padding: '8px 10px', color: '#e6edf3', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }}
+                                />
+                              ) : (
+                                <input
+                                  type="text"
+                                  value={editCotizForm[key] || ''}
+                                  onChange={e => setEditCotizForm(p => ({ ...p, [key]: e.target.value }))}
+                                  placeholder={`Ej: ${key === 'etd' ? '15/07/2026' : key === 'costo_total' ? 'USD 4,500' : '—'}`}
+                                  style={{ width: '100%', background: '#0d1117', border: '1px solid #30363d', borderRadius: 6, padding: '8px 10px', color: '#e6edf3', fontSize: 13, boxSizing: 'border-box' }}
+                                />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <div style={{ display: 'flex', gap: 10, marginTop: 22, justifyContent: 'flex-end' }}>
+                          <button onClick={() => setEditandoCotizIdx(null)} style={{ background: 'none', border: '1px solid #30363d', borderRadius: 8, color: '#8b949e', padding: '9px 20px', fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+                          <button onClick={handleGuardarEdicion} style={{ background: 'linear-gradient(135deg,#1e3a5f,#2d4a6e)', color: '#58a6ff', border: '1px solid #58a6ff55', borderRadius: 8, padding: '9px 24px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>✓ Guardar Cambios</button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* ÁREA IMPRIMIBLE — fondo claro como reporte diario */}
                   <div id="reporte-cotizaciones" style={{ background: '#f0f4f8', borderRadius: 12, overflow: 'hidden', fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" }}>
@@ -1691,6 +1776,7 @@ export default function AgenteTrafico() {
                             <tr>
                               <th style={{ ...thStyle, background: '#1a2332', width: 50, textAlign: 'center' }}>ITEM</th>
                               {COLS.map(c => <th key={c.key} style={thStyle}>{c.label}</th>)}
+                              <th style={{ ...thStyle, background: '#0d2137', width: 70 }}>ACCIÓN</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1733,6 +1819,14 @@ export default function AgenteTrafico() {
                                       {col.key === 'eta' && isCalcETA && <span style={{ display: 'block', fontSize: 9, color: '#718096' }}>calculado</span>}
                                     </td>
                                   ))}
+                                  <td style={{ ...cellStyle, background: rowBg }}>
+                                    <button
+                                      onClick={() => handleAbrirEdicion(i)}
+                                      style={{ background: '#1e3a5f', color: '#58a6ff', border: '1px solid #58a6ff44', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                                    >
+                                      ✏ Editar
+                                    </button>
+                                  </td>
                                 </tr>
                               );
                             })}
