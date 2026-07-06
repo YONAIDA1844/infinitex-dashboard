@@ -133,6 +133,7 @@ export default function AgenteTrafico() {
   const [errorComparativa, setErrorComparativa] = useState('');
   const [editandoCotizIdx, setEditandoCotizIdx] = useState<number|null>(null);
   const [editCotizForm, setEditCotizForm] = useState<Record<string,string>>({});
+  const [embarqueComparador, setEmbarqueComparador] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -1522,6 +1523,49 @@ export default function AgenteTrafico() {
               Carga hasta <strong style={{ color: '#a78bfa' }}>4 cotizaciones en PDF</strong>. El agente IA extrae los mismos campos de cada una y genera una tabla comparativa con recomendación.
             </p>
 
+            {/* Selector de embarque en cotización */}
+            {(() => {
+              const enCotizacion = embarques.filter(e =>
+                (e.estado || '').toLowerCase().includes('cotizaci')
+              );
+              if (enCotizacion.length === 0) return null;
+              return (
+                <div style={{ marginBottom: 20, background: '#0d1117', border: '1px solid rgba(167,139,250,0.25)', borderRadius: 10, padding: '14px 18px' }}>
+                  <div style={{ fontSize: 10, color: '#a78bfa', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 }}>
+                    ¿Para qué embarque es esta comparativa?
+                  </div>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                    {enCotizacion.map((e: any) => {
+                      const sel = embarqueComparador?.id === e.id;
+                      return (
+                        <button
+                          key={e.id}
+                          onClick={() => setEmbarqueComparador(sel ? null : e)}
+                          style={{
+                            background: sel ? 'rgba(167,139,250,0.18)' : 'rgba(167,139,250,0.05)',
+                            border: `1px solid ${sel ? '#a78bfa' : 'rgba(167,139,250,0.2)'}`,
+                            borderRadius: 8, padding: '8px 14px', cursor: 'pointer',
+                            textAlign: 'left', transition: 'all 0.15s',
+                          }}
+                        >
+                          <div style={{ fontSize: 11, fontWeight: 700, color: sel ? '#a78bfa' : '#e6edf3' }}>{e.descripcion}</div>
+                          <div style={{ fontSize: 10, color: '#8b949e', marginTop: 2 }}>
+                            {e.bl} &nbsp;·&nbsp; {e.proveedor || 'Sin proveedor'}
+                            {e.origen && <> &nbsp;·&nbsp; {e.origen} → {e.destino || 'PTY'}</>}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {embarqueComparador && (
+                    <div style={{ marginTop: 10, fontSize: 11, color: '#3fb950' }}>
+                      ✓ Comparando cotizaciones para: <strong>{embarqueComparador.descripcion}</strong>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* Zona de carga */}
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
               {cotizacionesPDF.map((c, i) => (
@@ -1612,20 +1656,20 @@ export default function AgenteTrafico() {
                 { key: 'validez',         label: 'VALIDEZ'              },
               ];
               const CAMPOS_EDIT = [
-                { key: 'agente_operador', label: 'Agente / Operador' },
-                { key: 'costo_total',     label: 'Monto Total'       },
-                { key: 'tiempo_transito', label: 'Días de Tránsito'  },
-                { key: 'naviera',         label: 'Naviera'           },
-                { key: 'tipo_contenedor', label: 'Tipo Contenedor'   },
-                { key: 'etd',             label: 'Salida ETD'        },
-                { key: 'eta',             label: 'Llegada ETA'       },
-                { key: 'dias_libres',     label: 'Días Libres'       },
-                { key: 'incoterm',        label: 'Incoterm'          },
-                { key: 'validez',         label: 'Validez'           },
-                { key: 'flete_maritimo',  label: 'Flete Marítimo'    },
-                { key: 'gastos_origen',   label: 'Gastos Origen'     },
-                { key: 'gastos_destino',  label: 'Gastos Destino'    },
-                { key: 'observaciones',   label: 'Observaciones'     },
+                { key: 'agente_operador', label: 'Agente / Operador',        hint: 'Ej: Anker Logística' },
+                { key: 'costo_total',     label: '💰 MONTO TOTAL',           hint: 'Ej: USD 4,500.00'   },
+                { key: 'tiempo_transito', label: 'Días de Tránsito',         hint: 'Ej: 31 días'        },
+                { key: 'naviera',         label: 'Naviera',                  hint: 'Ej: Maersk Line'    },
+                { key: 'tipo_contenedor', label: 'Tipo Contenedor',          hint: 'Ej: 40HC'           },
+                { key: 'etd',             label: 'Salida ETD',               hint: 'Ej: 15/07/2026'     },
+                { key: 'eta',             label: 'Llegada ETA',              hint: 'Ej: 15/08/2026'     },
+                { key: 'dias_libres',     label: 'Días Libres',              hint: 'Ej: 30 días libres' },
+                { key: 'incoterm',        label: 'Incoterm',                 hint: 'Ej: FOB'            },
+                { key: 'validez',         label: 'Validez',                  hint: 'Ej: 15/07/2026'     },
+                { key: 'flete_maritimo',  label: 'Flete Marítimo',           hint: 'Ej: USD 3,200'      },
+                { key: 'gastos_origen',   label: 'Gastos Origen',            hint: 'Ej: USD 450'        },
+                { key: 'gastos_destino',  label: 'Gastos Destino',           hint: 'Ej: USD 850'        },
+                { key: 'observaciones',   label: 'Observaciones',            hint: 'Condiciones, notas' },
               ];
               const thStyle: React.CSSProperties = {
                 padding: '11px 14px', textAlign: 'center', fontSize: 10,
@@ -1685,31 +1729,44 @@ export default function AgenteTrafico() {
                           <button onClick={() => setEditandoCotizIdx(null)} style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                          {CAMPOS_EDIT.map(({ key, label }) => (
-                            <div key={key} style={{ gridColumn: key === 'observaciones' ? '1 / -1' : undefined }}>
-                              <label style={{ display: 'block', fontSize: 10, color: '#8b949e', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>{label}</label>
-                              {key === 'observaciones' ? (
-                                <textarea
-                                  value={editCotizForm[key] || ''}
-                                  onChange={e => setEditCotizForm(p => ({ ...p, [key]: e.target.value }))}
-                                  rows={3}
-                                  style={{ width: '100%', background: '#0d1117', border: '1px solid #30363d', borderRadius: 6, padding: '8px 10px', color: '#e6edf3', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }}
-                                />
-                              ) : (
-                                <input
-                                  type="text"
-                                  value={editCotizForm[key] || ''}
-                                  onChange={e => setEditCotizForm(p => ({ ...p, [key]: e.target.value }))}
-                                  placeholder={`Ej: ${key === 'etd' ? '15/07/2026' : key === 'costo_total' ? 'USD 4,500' : '—'}`}
-                                  style={{ width: '100%', background: '#0d1117', border: '1px solid #30363d', borderRadius: 6, padding: '8px 10px', color: '#e6edf3', fontSize: 13, boxSizing: 'border-box' }}
-                                />
-                              )}
-                            </div>
-                          ))}
+                          {CAMPOS_EDIT.map(({ key, label, hint }) => {
+                            const esMonto = key === 'costo_total';
+                            const esObs   = key === 'observaciones';
+                            return (
+                              <div key={key} style={{ gridColumn: esObs ? '1 / -1' : undefined }}>
+                                <label style={{ display: 'block', fontSize: 10, color: esMonto ? '#58a6ff' : '#8b949e', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>{label}</label>
+                                {esObs ? (
+                                  <textarea
+                                    value={editCotizForm[key] || ''}
+                                    onChange={e => setEditCotizForm(p => ({ ...p, [key]: e.target.value }))}
+                                    rows={3}
+                                    style={{ width: '100%', background: '#0d1117', border: '1px solid #30363d', borderRadius: 6, padding: '8px 10px', color: '#e6edf3', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }}
+                                  />
+                                ) : (
+                                  <input
+                                    type="text"
+                                    value={editCotizForm[key] || ''}
+                                    onChange={e => setEditCotizForm(p => ({ ...p, [key]: e.target.value }))}
+                                    placeholder={hint}
+                                    style={{ width: '100%', background: esMonto ? '#0a1628' : '#0d1117', border: `1px solid ${esMonto ? '#58a6ff55' : '#30363d'}`, borderRadius: 6, padding: '8px 10px', color: esMonto ? '#58a6ff' : '#e6edf3', fontSize: esMonto ? 14 : 13, fontWeight: esMonto ? 700 : 400, boxSizing: 'border-box' }}
+                                  />
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                         <div style={{ display: 'flex', gap: 10, marginTop: 22, justifyContent: 'flex-end' }}>
                           <button onClick={() => setEditandoCotizIdx(null)} style={{ background: 'none', border: '1px solid #30363d', borderRadius: 8, color: '#8b949e', padding: '9px 20px', fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
-                          <button onClick={handleGuardarEdicion} style={{ background: 'linear-gradient(135deg,#1e3a5f,#2d4a6e)', color: '#58a6ff', border: '1px solid #58a6ff55', borderRadius: 8, padding: '9px 24px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>✓ Guardar Cambios</button>
+                          <button onClick={() => {
+                            if (editandoCotizIdx === null) return;
+                            const formActual = editCotizForm;
+                            setResultadoComparativa((prev: any) => {
+                              const nuevos = [...prev.resultados];
+                              nuevos[editandoCotizIdx] = { ...nuevos[editandoCotizIdx], datos: { ...formActual } };
+                              return { ...prev, resultados: nuevos };
+                            });
+                            setEditandoCotizIdx(null);
+                          }} style={{ background: 'linear-gradient(135deg,#1e3a5f,#2d4a6e)', color: '#58a6ff', border: '1px solid #58a6ff55', borderRadius: 8, padding: '9px 24px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>✓ Guardar Cambios</button>
                         </div>
                       </div>
                     </div>
@@ -1726,6 +1783,18 @@ export default function AgenteTrafico() {
                         <div style={{ fontSize: 12, color: '#58a6ff', fontWeight: 600, marginTop: 6 }}>
                           {rows.length} cotización(es) analizadas &nbsp;·&nbsp; {new Date().toLocaleDateString('es-PA', { day: '2-digit', month: 'long', year: 'numeric' })}
                         </div>
+                        {embarqueComparador && (
+                          <div style={{ marginTop: 10, background: 'rgba(88,166,255,0.1)', border: '1px solid rgba(88,166,255,0.25)', borderRadius: 8, padding: '8px 14px', display: 'inline-block' }}>
+                            <div style={{ fontSize: 9, color: '#7fb3d3', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 3 }}>Carga en cotización</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#e6edf3' }}>{embarqueComparador.descripcion}</div>
+                            <div style={{ fontSize: 11, color: '#58a6ff', marginTop: 2 }}>
+                              {embarqueComparador.bl}
+                              {embarqueComparador.proveedor && <> &nbsp;·&nbsp; {embarqueComparador.proveedor}</>}
+                              {embarqueComparador.origen && <> &nbsp;·&nbsp; {embarqueComparador.origen} → {embarqueComparador.destino || 'PTY'}</>}
+                              {embarqueComparador.contenedor && <> &nbsp;·&nbsp; {embarqueComparador.contenedor}</>}
+                            </div>
+                          </div>
+                        )}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <svg width="48" height="48" viewBox="0 0 80 80" fill="none">
