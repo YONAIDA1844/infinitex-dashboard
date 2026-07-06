@@ -94,6 +94,7 @@ const FORM_VACIO = {
   estado: 'En Puerto Origen',
   doc_bl: false, doc_packing: false, doc_factura: false, doc_permiso: false,
   notas: '',
+  llegada_real: '', llegada_anker: '', proximo_hito: '', riesgo: 'BAJO',
 };
 
 export default function AgenteTrafico() {
@@ -344,6 +345,10 @@ export default function AgenteTrafico() {
         permiso: form.doc_permiso,
       },
       notas: form.notas,
+      llegada_real: form.llegada_real || null,
+      llegada_anker: form.llegada_anker || null,
+      proximo_hito: form.proximo_hito || '',
+      riesgo: form.riesgo || 'BAJO',
     };
 
     setEmbarques((prev: any[]) => [nuevo, ...prev]);
@@ -374,6 +379,10 @@ export default function AgenteTrafico() {
           pallets: nuevo.pallets,
           descripcion: nuevo.descripcion,
           notas: nuevo.notas,
+          llegada_real: nuevo.llegada_real || null,
+          llegada_anker: nuevo.llegada_anker || null,
+          proximo_hito: nuevo.proximo_hito || '',
+          riesgo: nuevo.riesgo || 'BAJO',
           schema: 'test',
         }),
       });
@@ -925,6 +934,38 @@ export default function AgenteTrafico() {
               <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 70 }}
                 placeholder="Observaciones importantes del embarque..."
                 value={form.notas} onChange={e => handleFormChange('notas', e.target.value)} />
+            </div>
+
+            {/* Campos para reporte diario */}
+            <div style={{ borderTop: '1px solid rgba(0,212,170,0.2)', paddingTop: 20, marginBottom: 20 }}>
+              <p style={{ fontSize: 11, color: '#00d4aa', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 16 }}>
+                📊 DATOS PARA REPORTE DIARIO
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 16 }}>
+                <div>
+                  <label style={labelStyle}>Llegada Real (puerto)</label>
+                  <input type="date" style={inputStyle}
+                    value={form.llegada_real} onChange={e => handleFormChange('llegada_real', e.target.value)} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Llegada a Anker</label>
+                  <input type="date" style={inputStyle}
+                    value={form.llegada_anker} onChange={e => handleFormChange('llegada_anker', e.target.value)} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Próximo Hito</label>
+                  <input style={inputStyle} placeholder="Ej: Llegada a Anker ago. 11"
+                    value={form.proximo_hito} onChange={e => handleFormChange('proximo_hito', e.target.value)} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Nivel de Riesgo</label>
+                  <select style={inputStyle} value={form.riesgo} onChange={e => handleFormChange('riesgo', e.target.value)}>
+                    <option value="BAJO">🟢 BAJO</option>
+                    <option value="MEDIO">🟡 MEDIO</option>
+                    <option value="ALTO">🔴 ALTO</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             {/* Boton guardar */}
