@@ -1774,9 +1774,8 @@ export default function AgenteTrafico() {
                         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
                           <thead>
                             <tr>
-                              <th style={{ ...thStyle, background: '#1a2332', width: 50, textAlign: 'center' }}>ITEM</th>
+                              <th style={{ ...thStyle, background: '#1a2332', width: 70, textAlign: 'center' }}>ITEM</th>
                               {COLS.map(c => <th key={c.key} style={thStyle}>{c.label}</th>)}
-                              <th style={{ ...thStyle, background: '#0d2137', width: 70 }}>ACCIÓN</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1806,8 +1805,17 @@ export default function AgenteTrafico() {
                               };
                               return (
                                 <tr key={i}>
-                                  <td style={{ ...cellStyle, fontWeight: 800, fontSize: 14, color: esRec ? '#1a5c2a' : '#3498db' }}>
-                                    {i + 1}{esRec && <span style={{ display: 'block', fontSize: 9, color: '#27ae60', fontWeight: 700 }}>★ REC.</span>}
+                                  <td style={{ ...cellStyle, fontWeight: 800, fontSize: 14, color: esRec ? '#1a5c2a' : '#3498db', width: 70 }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                                      <span>{i + 1}</span>
+                                      {esRec && <span style={{ fontSize: 9, color: '#27ae60', fontWeight: 700 }}>★ REC.</span>}
+                                      <button
+                                        onClick={() => handleAbrirEdicion(i)}
+                                        style={{ background: '#1e3a5f', color: '#58a6ff', border: '1px solid #58a6ff55', borderRadius: 5, padding: '3px 7px', fontSize: 10, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', marginTop: 2 }}
+                                      >
+                                        ✏ editar
+                                      </button>
+                                    </div>
                                   </td>
                                   {COLS.map(col => (
                                     <td key={col.key} style={{
@@ -1819,14 +1827,6 @@ export default function AgenteTrafico() {
                                       {col.key === 'eta' && isCalcETA && <span style={{ display: 'block', fontSize: 9, color: '#718096' }}>calculado</span>}
                                     </td>
                                   ))}
-                                  <td style={{ ...cellStyle, background: rowBg }}>
-                                    <button
-                                      onClick={() => handleAbrirEdicion(i)}
-                                      style={{ background: '#1e3a5f', color: '#58a6ff', border: '1px solid #58a6ff44', borderRadius: 6, padding: '5px 10px', fontSize: 11, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}
-                                    >
-                                      ✏ Editar
-                                    </button>
-                                  </td>
                                 </tr>
                               );
                             })}
