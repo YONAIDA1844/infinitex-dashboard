@@ -1593,146 +1593,140 @@ export default function AgenteTrafico() {
               </div>
             )}
 
-            {/* RESULTADOS — TABLA PROFESIONAL */}
+            {/* RESULTADOS — TABLA FILAS=COTIZACIONES */}
             {resultadoComparativa && (() => {
-              const cols = resultadoComparativa.resultados;
-              const colColors = ['#58a6ff','#3fb950','#f1b000','#00d4aa'];
-              const filas = [
-                { key: 'agente_operador',  label: 'Agente / Operador',       tipo: 'texto' },
-                { key: 'naviera',          label: 'Naviera',                  tipo: 'texto' },
-                { key: 'tipo_contenedor',  label: 'Tipo de Contenedor',       tipo: 'texto' },
-                { key: 'incoterm',         label: 'Incoterm',                 tipo: 'texto' },
-                { key: 'puerto_origen',    label: 'Puerto de Origen',         tipo: 'texto' },
-                { key: 'puerto_destino',   label: 'Puerto de Destino',        tipo: 'texto' },
-                { key: 'etd',              label: 'ETD — Fecha de Salida',    tipo: 'fecha' },
-                { key: 'tiempo_transito',  label: 'Días en Tránsito',         tipo: 'texto' },
-                { key: 'eta',              label: 'ETA — Fecha de Llegada',   tipo: 'fecha' },
-                { key: 'flete_maritimo',   label: 'Flete Marítimo',           tipo: 'monto' },
-                { key: 'seguro',           label: 'Seguro',                   tipo: 'monto' },
-                { key: 'gastos_origen',    label: 'Gastos en Origen',         tipo: 'monto' },
-                { key: 'gastos_destino',   label: 'Gastos en Destino',        tipo: 'monto' },
-                { key: 'costo_total',      label: 'COSTO TOTAL',              tipo: 'total' },
-                { key: 'validez',          label: 'Validez',                  tipo: 'texto' },
-                { key: 'observaciones',    label: 'Observaciones',            tipo: 'obs'   },
+              const rows = resultadoComparativa.resultados;
+              const rec  = resultadoComparativa.recomendadoIndex ?? -1;
+              const COLS = [
+                { key: 'agente_operador', label: 'NOMBRE DEL OPERADOR' },
+                { key: 'monto_display',   label: 'MONTO'               },
+                { key: 'tiempo_transito', label: 'DÍAS DE TRÁNSITO'     },
+                { key: 'naviera',         label: 'NAVIERA'              },
+                { key: 'tipo_contenedor', label: 'TIPO CONTENEDOR'      },
+                { key: 'etd',             label: 'SALIDA (ETD)'         },
+                { key: 'eta',             label: 'LLEGADA (ETA)'        },
+                { key: 'dias_libres',     label: 'DÍAS LIBRES'          },
+                { key: 'incoterm',        label: 'INCOTERM'             },
+                { key: 'validez',         label: 'VALIDEZ'              },
               ];
+              const thStyle: React.CSSProperties = {
+                padding: '11px 14px', textAlign: 'center', fontSize: 10,
+                color: '#fff', letterSpacing: 1.5, textTransform: 'uppercase',
+                fontWeight: 700, whiteSpace: 'nowrap', background: '#1e3a5f',
+                borderRight: '1px solid rgba(255,255,255,0.1)',
+              };
               return (
                 <div>
-                  {/* Botones descarga */}
+                  {/* Botones descarga — fuera del área capturada */}
                   <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginBottom: 14 }}>
-                    <button onClick={handleDescargarReporteCotizaciones} style={{ background: 'rgba(88,166,255,0.12)', color: '#58a6ff', border: '1px solid #58a6ff44', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                      ↓ Descargar PDF
-                    </button>
+                    <button onClick={handleDescargarReporteCotizaciones} style={{ background: 'rgba(88,166,255,0.12)', color: '#58a6ff', border: '1px solid #58a6ff44', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>↓ Descargar PDF</button>
                     <button onClick={async () => {
                       const el = document.getElementById('reporte-cotizaciones');
                       if (!el) return;
                       const { default: h2c } = await import('html2canvas');
-                      const canvas = await h2c(el, { scale: 2, backgroundColor: '#0d1117', useCORS: true });
-                      const a = document.createElement('a');
-                      a.href = canvas.toDataURL('image/png');
-                      a.download = `InfiniteX_Comparativa_${new Date().toISOString().slice(0,10)}.png`;
-                      a.click();
-                    }} style={{ background: 'rgba(63,185,80,0.12)', color: '#3fb950', border: '1px solid #3fb95044', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-                      ↓ Descargar Imagen
-                    </button>
+                      const canvas = await h2c(el, { scale: 2, backgroundColor: '#f0f4f8', useCORS: true });
+                      const a = document.createElement('a'); a.href = canvas.toDataURL('image/png');
+                      a.download = `InfiniteX_Comparativa_${new Date().toISOString().slice(0,10)}.png`; a.click();
+                    }} style={{ background: 'rgba(63,185,80,0.12)', color: '#3fb950', border: '1px solid #3fb95044', borderRadius: 8, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>↓ Descargar Imagen</button>
                   </div>
 
-                  {/* Área imprimible */}
-                  <div id="reporte-cotizaciones" style={{ background: '#0d1117', borderRadius: 12, overflow: 'hidden' }}>
+                  {/* ÁREA IMPRIMIBLE — fondo claro como reporte diario */}
+                  <div id="reporte-cotizaciones" style={{ background: '#f0f4f8', borderRadius: 12, overflow: 'hidden', fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" }}>
 
-                    {/* HEADER */}
+                    {/* HEADER — igual al reporte diario */}
                     <div style={{ background: 'linear-gradient(135deg,#1a2332 0%,#2d4a6e 100%)', padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <div style={{ fontSize: 10, color: '#7fb3d3', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 6 }}>InfiniteX · Agente de Tráfico · Sicoben Ediciones</div>
                         <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: 1 }}>COMPARACIÓN DE COTIZACIONES</div>
                         <div style={{ fontSize: 12, color: '#58a6ff', fontWeight: 600, marginTop: 6 }}>
-                          {cols.length} cotización(es) analizadas &nbsp;·&nbsp; {new Date().toLocaleDateString('es-PA', { day: '2-digit', month: 'long', year: 'numeric' })}
+                          {rows.length} cotización(es) analizadas &nbsp;·&nbsp; {new Date().toLocaleDateString('es-PA', { day: '2-digit', month: 'long', year: 'numeric' })}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: 3 }}>
-                          <span style={{ color: '#58a6ff' }}>INFINITE</span><span style={{ color: '#4a6280' }}> X</span>
-                        </div>
+                        <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: 3 }}><span style={{ color: '#58a6ff' }}>INFINITE</span><span style={{ color: '#4a6280' }}> X</span></div>
                         <div style={{ fontSize: 10, color: '#4a6280', marginTop: 4, letterSpacing: 1 }}>KADI INTERNACIONAL S.A.</div>
                       </div>
                     </div>
 
-                    {/* TABLA COMPARATIVA */}
-                    <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr style={{ background: '#161b22', borderBottom: '2px solid #30363d' }}>
-                            <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 10, color: '#8b949e', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700, width: 160, whiteSpace: 'nowrap' }}>
-                              CAMPO
-                            </th>
-                            {cols.map((r: any, i: number) => (
-                              <th key={i} style={{ padding: '12px 16px', textAlign: 'center', minWidth: 160 }}>
-                                <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: colColors[i] || '#a78bfa', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: '#0d1117', flexShrink: 0 }}>{i + 1}</div>
-                                  <div style={{ textAlign: 'left' }}>
-                                    <div style={{ fontSize: 11, fontWeight: 700, color: colColors[i] || '#a78bfa' }}>{r.datos?.agente_operador || `Cotización ${i+1}`}</div>
-                                    <div style={{ fontSize: 10, color: '#8b949e', fontWeight: 400 }}>{r.nombre.replace(/\.pdf$/i,'')}</div>
-                                  </div>
-                                </div>
-                              </th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filas.map(({ key, label, tipo }) => {
-                            const esTotal = tipo === 'total';
-                            const esMonto = tipo === 'monto';
-                            const esFecha = tipo === 'fecha';
-                            const esObs   = tipo === 'obs';
-                            return (
-                              <tr key={key} style={{
-                                borderBottom: `1px solid ${esTotal ? '#30363d' : '#21262d'}`,
-                                background: esTotal ? 'rgba(88,166,255,0.06)' : esMonto ? 'rgba(88,166,255,0.02)' : undefined,
-                              }}>
-                                <td style={{ padding: '10px 16px', fontSize: 11, color: esTotal ? '#e6edf3' : '#8b949e', fontWeight: esTotal ? 800 : 600, whiteSpace: 'nowrap', letterSpacing: esTotal ? 1 : 0 }}>
-                                  {esTotal && <span style={{ color: '#f1b000', marginRight: 5 }}>★</span>}
-                                  {esMonto && <span style={{ color: '#58a6ff', marginRight: 5 }}>$</span>}
-                                  {esFecha && <span style={{ marginRight: 5 }}>📅</span>}
-                                  {label}
-                                </td>
-                                {cols.map((r: any, i: number) => {
-                                  const val = r.datos?.[key] || '-';
-                                  const isCalc = typeof val === 'string' && val.includes('calculado');
-                                  return (
-                                    <td key={i} style={{ padding: '10px 16px', textAlign: 'center', fontSize: esTotal ? 14 : esObs ? 11 : 12, color: esTotal ? (colColors[i]||'#a78bfa') : esMonto ? '#58a6ff' : esFecha ? '#3fb950' : '#e6edf3', fontWeight: esTotal ? 800 : esMonto ? 600 : 400, lineHeight: esObs ? 1.5 : 1 }}>
-                                      {val}
-                                      {isCalc && <span style={{ display: 'block', fontSize: 9, color: '#8b949e', marginTop: 2 }}>calculado por IA</span>}
+                    {/* TABLA — filas = cotizaciones, columnas = campos */}
+                    <div style={{ padding: '20px 20px 0', background: '#fff' }}>
+                      <div style={{ fontSize: 10, color: '#3498db', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 }}>DETALLE COMPARATIVO DE COTIZACIONES</div>
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
+                          <thead>
+                            <tr>
+                              <th style={{ ...thStyle, background: '#1a2332', width: 50, textAlign: 'center' }}>ITEM</th>
+                              {COLS.map(c => <th key={c.key} style={thStyle}>{c.label}</th>)}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rows.map((r: any, i: number) => {
+                              const d = r.datos || {};
+                              const esRec = i === rec;
+                              const isCalcETA = typeof d.eta === 'string' && d.eta.includes('*');
+                              const rowBg = esRec ? '#e8f5e9' : i % 2 === 0 ? '#fff' : '#f7f9fc';
+                              const textColor = esRec ? '#1a5c2a' : '#1a2332';
+                              const cellStyle: React.CSSProperties = {
+                                padding: '10px 14px', fontSize: 12, color: textColor,
+                                textAlign: 'center', borderBottom: '1px solid #e8edf2',
+                                borderRight: '1px solid #e8edf2', fontWeight: esRec ? 700 : 400,
+                                background: rowBg,
+                              };
+                              const vals: Record<string,string> = {
+                                agente_operador: d.agente_operador || '-',
+                                monto_display:   d.costo_total || '-',
+                                tiempo_transito: d.tiempo_transito || '-',
+                                naviera:         d.naviera || '-',
+                                tipo_contenedor: d.tipo_contenedor || '-',
+                                etd:             d.etd || '-',
+                                eta:             d.eta ? d.eta.replace(' *','') : '-',
+                                dias_libres:     d.dias_libres || '-',
+                                incoterm:        d.incoterm || '-',
+                                validez:         d.validez || '-',
+                              };
+                              return (
+                                <tr key={i}>
+                                  <td style={{ ...cellStyle, fontWeight: 800, fontSize: 14, color: esRec ? '#1a5c2a' : '#3498db' }}>
+                                    {i + 1}{esRec && <span style={{ display: 'block', fontSize: 9, color: '#27ae60', fontWeight: 700 }}>★ REC.</span>}
+                                  </td>
+                                  {COLS.map(col => (
+                                    <td key={col.key} style={{
+                                      ...cellStyle,
+                                      color: col.key === 'monto_display' ? (esRec ? '#1a5c2a' : '#2563eb') : textColor,
+                                      fontWeight: col.key === 'monto_display' ? 700 : esRec ? 700 : 400,
+                                    }}>
+                                      {vals[col.key]}
+                                      {col.key === 'eta' && isCalcETA && <span style={{ display: 'block', fontSize: 9, color: '#718096' }}>calculado</span>}
                                     </td>
-                                  );
-                                })}
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                                  ))}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     </div>
 
                     {/* RECOMENDACIÓN */}
                     {resultadoComparativa.recomendacion && (
-                      <div style={{ margin: '0', padding: '20px 28px', background: 'rgba(167,139,250,0.06)', borderTop: '2px solid rgba(167,139,250,0.2)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(167,139,250,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#a78bfa' }}>✦</div>
-                          <div style={{ fontSize: 11, fontWeight: 800, color: '#a78bfa', letterSpacing: 2, textTransform: 'uppercase' }}>Recomendación del Agente IA — Mejor Opción en Costo y Tiempo</div>
+                      <div style={{ background: '#fff', padding: '16px 20px', borderTop: '2px solid #e8edf2' }}>
+                        <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', background: '#f3e8fd', borderRadius: 8, padding: '14px 18px', border: '1px solid #d6b0f5' }}>
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#8e44ad', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#fff', flexShrink: 0, marginTop: 2 }}>✦</div>
+                          <div>
+                            <div style={{ fontSize: 11, fontWeight: 800, color: '#6b21a8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>Recomendación del Agente IA — Mejor Opción en Costo y Tiempo de Tránsito</div>
+                            <p style={{ margin: 0, fontSize: 13, color: '#4a1772', lineHeight: 1.8 }}>{resultadoComparativa.recomendacion}</p>
+                          </div>
                         </div>
-                        <p style={{ margin: 0, fontSize: 13, color: '#e6edf3', lineHeight: 1.8, paddingLeft: 38 }}>
-                          {resultadoComparativa.recomendacion}
-                        </p>
                       </div>
                     )}
 
                     {/* FOOTER */}
                     <div style={{ background: '#1a2332', padding: '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ fontSize: 10, color: '#7fb3d3' }}>KADI INTERNACIONAL S.A. · SICOBEN EDICIONES · Generado por InfiniteX</div>
-                      <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: 2 }}>
-                        <span style={{ color: '#58a6ff' }}>INFINITE</span><span style={{ color: '#4a6280' }}> X</span>
-                      </div>
+                      <div style={{ fontSize: 10, color: '#7fb3d3' }}>KADI INTERNACIONAL S.A. · SICOBEN EDICIONES · Generado automáticamente por InfiniteX</div>
+                      <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: 2 }}><span style={{ color: '#58a6ff' }}>INFINITE</span><span style={{ color: '#4a6280' }}> X</span></div>
                     </div>
 
-                  </div>{/* fin área imprimible */}
+                  </div>
                 </div>
               );
             })()}
