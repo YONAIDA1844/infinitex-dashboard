@@ -587,10 +587,14 @@ export default function AgenteTrafico() {
   };
 
   const ETIQUETAS_CAMPOS: Record<string, string> = {
-    proveedor: 'Proveedor / Forwarder',
+    agente_operador: 'Agente / Operador Logístico',
     naviera: 'Naviera',
+    tipo_contenedor: 'Tipo de Contenedor',
+    incoterm: 'Incoterm',
     puerto_origen: 'Puerto Origen',
     puerto_destino: 'Puerto Destino',
+    etd: 'ETD — Fecha de Salida',
+    eta: 'ETA — Fecha de Llegada',
     flete_maritimo: 'Flete Marítimo',
     seguro: 'Seguro',
     gastos_origen: 'Gastos en Origen',
@@ -598,7 +602,6 @@ export default function AgenteTrafico() {
     costo_total: 'Costo Total',
     tiempo_transito: 'Tiempo en Tránsito',
     validez: 'Validez',
-    incoterm: 'Incoterm',
     observaciones: 'Observaciones',
   };
 
@@ -1573,17 +1576,33 @@ export default function AgenteTrafico() {
             {/* Tabla comparativa */}
             {resultadoComparativa && (
               <div>
+                {/* Resumen rápido por cotización */}
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+                  {resultadoComparativa.resultados.map((r: any, i: number) => (
+                    <div key={i} style={{
+                      background: '#0d1117', border: '1px solid #21262d', borderRadius: 10,
+                      padding: '14px 18px', flex: '1 1 180px',
+                    }}>
+                      <div style={{ fontSize: 10, color: '#8b949e', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>Cotización {i + 1}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa', marginBottom: 8 }}>{r.datos?.agente_operador || r.nombre.replace('.pdf','')}</div>
+                      <div style={{ fontSize: 12, color: '#58a6ff', fontWeight: 600, marginBottom: 4 }}>💰 {r.datos?.costo_total || '-'}</div>
+                      <div style={{ fontSize: 12, color: '#3fb950', marginBottom: 4 }}>⏱ {r.datos?.tiempo_transito || '-'}</div>
+                      <div style={{ fontSize: 11, color: '#8b949e' }}>📅 ETD: {r.datos?.etd || '-'} · ETA: {r.datos?.eta || '-'}</div>
+                    </div>
+                  ))}
+                </div>
+
                 {/* Recomendación IA */}
                 {resultadoComparativa.recomendacion && (
                   <div style={{
-                    background: 'linear-gradient(135deg,rgba(167,139,250,0.08),rgba(88,166,255,0.06))',
-                    border: '1px solid rgba(167,139,250,0.3)', borderRadius: 10,
-                    padding: '14px 20px', marginBottom: 20,
+                    background: 'linear-gradient(135deg,rgba(167,139,250,0.1),rgba(88,166,255,0.07))',
+                    border: '1px solid rgba(167,139,250,0.35)', borderRadius: 10,
+                    padding: '16px 20px', marginBottom: 20,
                   }}>
-                    <div style={{ fontSize: 11, color: '#a78bfa', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>
-                      ✦ RECOMENDACIÓN DEL AGENTE IA
+                    <div style={{ fontSize: 11, color: '#a78bfa', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 16 }}>✦</span> RECOMENDACIÓN DEL AGENTE IA — MEJOR OPCIÓN EN COSTO Y TIEMPO
                     </div>
-                    <p style={{ margin: 0, fontSize: 13, color: '#e6edf3', lineHeight: 1.7 }}>
+                    <p style={{ margin: 0, fontSize: 13, color: '#e6edf3', lineHeight: 1.8 }}>
                       {resultadoComparativa.recomendacion}
                     </p>
                   </div>
@@ -1609,17 +1628,24 @@ export default function AgenteTrafico() {
                       {(resultadoComparativa.campos as string[]).map((campo: string) => {
                         const vals = resultadoComparativa.resultados.map((r: any) => r.datos?.[campo] || '-');
                         const esCostoTotal = campo === 'costo_total';
+                        const esMonto = ['flete_maritimo','seguro','gastos_origen','gastos_destino'].includes(campo);
+                        const esFecha = ['etd','eta'].includes(campo);
                         return (
-                          <tr key={campo} style={{ borderBottom: '1px solid #21262d', background: esCostoTotal ? 'rgba(167,139,250,0.05)' : undefined }}>
+                          <tr key={campo} style={{
+                            borderBottom: '1px solid #21262d',
+                            background: esCostoTotal ? 'rgba(167,139,250,0.08)' : esMonto ? 'rgba(88,166,255,0.03)' : undefined,
+                          }}>
                             <td style={{ padding: '10px 14px', fontSize: 12, color: '#8b949e', fontWeight: 600, whiteSpace: 'nowrap' }}>
                               {esCostoTotal && <span style={{ color: '#a78bfa', marginRight: 4 }}>★</span>}
+                              {esMonto && <span style={{ color: '#58a6ff', marginRight: 4 }}>$</span>}
+                              {esFecha && <span style={{ color: '#3fb950', marginRight: 4 }}>📅</span>}
                               {ETIQUETAS_CAMPOS[campo] || campo}
                             </td>
                             {vals.map((val: string, i: number) => (
                               <td key={i} style={{
                                 padding: '10px 14px', fontSize: 13,
-                                color: esCostoTotal ? '#a78bfa' : '#e6edf3',
-                                fontWeight: esCostoTotal ? 700 : 400,
+                                color: esCostoTotal ? '#a78bfa' : esMonto ? '#58a6ff' : esFecha ? '#3fb950' : '#e6edf3',
+                                fontWeight: esCostoTotal || esMonto ? 600 : 400,
                               }}>
                                 {val}
                               </td>

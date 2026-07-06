@@ -4,10 +4,14 @@ import { NextRequest, NextResponse } from 'next/server';
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const CAMPOS = [
-  'proveedor',
+  'agente_operador',
   'naviera',
+  'tipo_contenedor',
+  'incoterm',
   'puerto_origen',
   'puerto_destino',
+  'etd',
+  'eta',
   'flete_maritimo',
   'seguro',
   'gastos_origen',
@@ -15,31 +19,31 @@ const CAMPOS = [
   'costo_total',
   'tiempo_transito',
   'validez',
-  'incoterm',
   'observaciones',
 ];
 
 const PROMPT = `Eres un experto en logística internacional. Se te proporcionará una cotización de flete en PDF.
-Extrae exactamente los siguientes campos. Si un campo no está explícito, déjalo como null.
-Devuelve SOLO un objeto JSON válido con esta estructura exacta:
+Extrae exactamente los siguientes campos. Si un campo no está explícito en el documento, coloca null.
+Devuelve SOLO un objeto JSON válido con esta estructura exacta, sin texto adicional:
 
 {
-  "proveedor": "nombre del forwarder o proveedor logístico",
-  "naviera": "nombre de la naviera propuesta",
-  "puerto_origen": "puerto de origen",
-  "puerto_destino": "puerto de destino",
-  "flete_maritimo": "monto en USD o la moneda indicada (ej: USD 1,200)",
-  "seguro": "monto del seguro si aplica",
-  "gastos_origen": "cargos/gastos en origen",
-  "gastos_destino": "cargos/gastos en destino (THC, documentación, etc.)",
-  "costo_total": "costo total estimado incluyendo todos los cargos",
-  "tiempo_transito": "días de tránsito en número (ej: 28 días)",
-  "validez": "fecha o período de validez de la cotización",
-  "incoterm": "condición de venta (FOB, CIF, EXW, etc.)",
-  "observaciones": "condiciones importantes, restricciones o notas relevantes"
-}
-
-No incluyas texto adicional fuera del JSON.`;
+  "agente_operador": "nombre del agente de carga u operador logístico que emite la cotización",
+  "naviera": "nombre de la naviera propuesta (ej: Maersk, MSC, CMA CGM, Hapag-Lloyd, Evergreen, etc.)",
+  "tipo_contenedor": "tipo de contenedor (ej: 40HC, 40', 20', 45HC, LCL, etc.)",
+  "incoterm": "condición de venta (ej: FOB, CIF, EXW, CFR, DDP, etc.)",
+  "puerto_origen": "nombre del puerto de origen",
+  "puerto_destino": "nombre del puerto de destino",
+  "etd": "fecha estimada de salida / zarpe (formato: dd/mm/yyyy o como aparece en el documento)",
+  "eta": "fecha estimada de llegada al puerto destino (formato: dd/mm/yyyy o como aparece en el documento)",
+  "flete_maritimo": "costo del flete marítimo con moneda (ej: USD 2,500)",
+  "seguro": "costo del seguro si aplica (ej: USD 150), o null si no incluye",
+  "gastos_origen": "cargos en origen: THC, documentación, handling, etc. con moneda",
+  "gastos_destino": "cargos en destino: THC, documentación, handling, aduana, etc. con moneda",
+  "costo_total": "costo total estimado sumando todos los cargos con moneda",
+  "tiempo_transito": "días de tránsito (ej: 28 días, 35 días)",
+  "validez": "período o fecha de validez de la cotización",
+  "observaciones": "condiciones importantes, restricciones, notas relevantes o servicios incluidos/excluidos"
+}`;
 
 export async function POST(req: NextRequest) {
   try {
@@ -87,22 +91,33 @@ export async function POST(req: NextRequest) {
       })
     );
 
-    // Generar recomendación comparativa
     const exitosas = resultados.filter(r => r.ok && r.datos);
     let recomendacion = null;
 
     if (exitosas.length >= 2) {
       const resumen = exitosas.map((r, i) =>
-        `Cotización ${i + 1} (${r.nombre}): Costo total: ${r.datos.costo_total}, Tiempo: ${r.datos.tiempo_transito}, Naviera: ${r.datos.naviera}`
-      ).join('\n');
+        `Cotización ${i + 1} (${r.nombre}):
+  - Agente: ${r.datos.agente_operador}
+  - Naviera: ${r.datos.naviera}
+  - Contenedor: ${r.datos.tipo_contenedor}
+  - Incoterm: ${r.datos.incoterm}
+  - ETD: ${r.datos.etd} | ETA: ${r.datos.eta}
+  - Costo total: ${r.datos.costo_total}
+  - Tiempo en tránsito: ${r.datos.tiempo_transito}
+  - Validez: ${r.datos.validez}`
+      ).join('\n\n');
 
       const recMsg = await client.messages.create({
         model: 'claude-sonnet-4-6',
-        max_tokens: 512,
+        max_tokens: 600,
         messages: [
           {
             role: 'user',
-            content: `Eres un experto en logística internacional. Basándote en estas cotizaciones, da una recomendación concisa (máximo 3 oraciones) de cuál elegir y por qué. Considera costo, tiempo de tránsito y naviera.\n\n${resumen}\n\nResponde en español.`,
+            content: `Eres un experto en logística internacional. Analiza estas cotizaciones de flete y da una recomendación concisa (máximo 4 oraciones) de cuál elegir y por qué. Considera: costo total, tiempo de tránsito, naviera, fechas ETD/ETA y condiciones. Sé específico mencionando cuál cotización (número y agente) recomiendas.
+
+${resumen}
+
+Responde en español.`,
           },
         ],
       });
