@@ -1811,9 +1811,43 @@ export default function AgenteTrafico() {
                           {rows.length} cotización(es) analizadas &nbsp;·&nbsp; {new Date().toLocaleDateString('es-PA', { day: '2-digit', month: 'long', year: 'numeric' })}
                         </div>
                       </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 26, fontWeight: 800, letterSpacing: 3 }}><span style={{ color: '#58a6ff' }}>INFINITE</span><span style={{ color: '#4a6280' }}> X</span></div>
-                        <div style={{ fontSize: 10, color: '#4a6280', marginTop: 4, letterSpacing: 1 }}>KADI INTERNACIONAL S.A.</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <svg width="48" height="48" viewBox="0 0 80 80" fill="none">
+                          <defs>
+                            <radialGradient id="rcg" cx="38%" cy="35%" r="65%">
+                              <stop offset="0%" stopColor="#1a3a5c"/>
+                              <stop offset="100%" stopColor="#0a1628"/>
+                            </radialGradient>
+                            <clipPath id="rcc"><circle cx="40" cy="40" r="34"/></clipPath>
+                            <filter id="rcglow"><feGaussianBlur stdDeviation="1.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                          </defs>
+                          <circle cx="40" cy="40" r="34" fill="url(#rcg)"/>
+                          <g clipPath="url(#rcc)" stroke="rgba(110,170,223,0.18)" strokeWidth="0.7" fill="none">
+                            <ellipse cx="40" cy="40" rx="34" ry="10"/><ellipse cx="40" cy="40" rx="34" ry="22"/>
+                            <ellipse cx="40" cy="40" rx="34" ry="32"/><line x1="40" y1="6" x2="40" y2="74"/>
+                            <ellipse cx="40" cy="40" rx="17" ry="34"/><ellipse cx="40" cy="40" rx="28" ry="34"/>
+                          </g>
+                          <g clipPath="url(#rcc)" stroke="#6eaadf" strokeWidth="0.9" fill="none" strokeOpacity="0.4">
+                            <path d="M22 32 Q32 14 50 22"/><path d="M50 22 Q62 28 58 44"/>
+                            <path d="M22 32 Q20 50 30 58"/><path d="M14 42 Q18 36 22 32"/>
+                          </g>
+                          <path d="M22 32 Q32 14 50 22" stroke="#b8d8f8" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                          <path d="M50 22 Q62 28 58 44" stroke="#b8d8f8" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                          <path d="M14 42 Q18 36 22 32" stroke="#b8d8f8" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                          <g filter="url(#rcglow)">
+                            <circle cx="22" cy="32" r="2.8" fill="#7bbcf0"/><circle cx="50" cy="22" r="2.5" fill="#7bbcf0"/>
+                            <circle cx="58" cy="44" r="2.5" fill="#7bbcf0"/><circle cx="14" cy="42" r="2" fill="#7bbcf0"/>
+                          </g>
+                          <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(110,170,223,0.35)" strokeWidth="1"/>
+                          <ellipse cx="32" cy="28" rx="9" ry="5" fill="rgba(255,255,255,0.05)" transform="rotate(-20,32,28)"/>
+                        </svg>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 2, lineHeight: 1 }}>
+                            <span style={{ color: '#58a6ff' }}>Infinite</span><span style={{ color: '#fff' }}>X</span>
+                          </div>
+                          <div style={{ fontSize: 9, color: '#7fb3d3', letterSpacing: 2, textTransform: 'uppercase', marginTop: 3 }}>SISTEMA LOGÍSTICO</div>
+                          <div style={{ fontSize: 9, color: '#4a6280', marginTop: 2, letterSpacing: 1 }}>KADI INTERNACIONAL S.A.</div>
+                        </div>
                       </div>
                     </div>
 
@@ -1890,9 +1924,31 @@ export default function AgenteTrafico() {
                     )}
 
                     {/* FOOTER */}
-                    <div style={{ background: '#1a2332', padding: '14px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ background: '#1a2332', padding: '12px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ fontSize: 10, color: '#7fb3d3' }}>KADI INTERNACIONAL S.A. · SICOBEN EDICIONES · Generado automáticamente por InfiniteX</div>
-                      <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: 2 }}><span style={{ color: '#58a6ff' }}>INFINITE</span><span style={{ color: '#4a6280' }}> X</span></div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <svg width="22" height="22" viewBox="0 0 80 80" fill="none">
+                          <defs>
+                            <radialGradient id="fcg" cx="38%" cy="35%" r="65%">
+                              <stop offset="0%" stopColor="#1a3a5c"/><stop offset="100%" stopColor="#0a1628"/>
+                            </radialGradient>
+                            <clipPath id="fcc"><circle cx="40" cy="40" r="34"/></clipPath>
+                          </defs>
+                          <circle cx="40" cy="40" r="34" fill="url(#fcg)"/>
+                          <g clipPath="url(#fcc)" stroke="rgba(110,170,223,0.22)" strokeWidth="0.8" fill="none">
+                            <ellipse cx="40" cy="40" rx="34" ry="12"/><ellipse cx="40" cy="40" rx="34" ry="24"/>
+                            <line x1="40" y1="6" x2="40" y2="74"/><ellipse cx="40" cy="40" rx="20" ry="34"/>
+                          </g>
+                          <path d="M22 32 Q32 14 50 22" stroke="#b8d8f8" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
+                          <path d="M50 22 Q62 28 58 44" stroke="#b8d8f8" strokeWidth="1.8" fill="none" strokeLinecap="round"/>
+                          <circle cx="22" cy="32" r="3" fill="#7bbcf0"/><circle cx="50" cy="22" r="2.5" fill="#7bbcf0"/>
+                          <circle cx="58" cy="44" r="2.5" fill="#7bbcf0"/>
+                          <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(110,170,223,0.3)" strokeWidth="1"/>
+                        </svg>
+                        <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: 1 }}>
+                          <span style={{ color: '#58a6ff' }}>Infinite</span><span style={{ color: '#7fb3d3' }}>X</span>
+                        </div>
+                      </div>
                     </div>
 
                   </div>
