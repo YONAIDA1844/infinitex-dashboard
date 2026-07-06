@@ -1573,89 +1573,125 @@ export default function AgenteTrafico() {
               </div>
             )}
 
-            {/* Tabla comparativa */}
+            {/* RESULTADOS — TARJETAS NUMERADAS */}
             {resultadoComparativa && (
               <div>
-                {/* Resumen rápido por cotización */}
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
-                  {resultadoComparativa.resultados.map((r: any, i: number) => (
-                    <div key={i} style={{
-                      background: '#0d1117', border: '1px solid #21262d', borderRadius: 10,
-                      padding: '14px 18px', flex: '1 1 180px',
-                    }}>
-                      <div style={{ fontSize: 10, color: '#8b949e', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>Cotización {i + 1}</div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa', marginBottom: 8 }}>{r.datos?.agente_operador || r.nombre.replace('.pdf','')}</div>
-                      <div style={{ fontSize: 12, color: '#58a6ff', fontWeight: 600, marginBottom: 4 }}>💰 {r.datos?.costo_total || '-'}</div>
-                      <div style={{ fontSize: 12, color: '#3fb950', marginBottom: 4 }}>⏱ {r.datos?.tiempo_transito || '-'}</div>
-                      <div style={{ fontSize: 11, color: '#8b949e' }}>📅 ETD: {r.datos?.etd || '-'} · ETA: {r.datos?.eta || '-'}</div>
-                    </div>
-                  ))}
+                {/* Título */}
+                <div style={{ fontSize: 11, color: '#8b949e', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 16, fontWeight: 700 }}>
+                  RESULTADO DEL ANÁLISIS — {resultadoComparativa.resultados.length} COTIZACIONES
+                </div>
+
+                {/* Tarjetas numeradas */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 24 }}>
+                  {resultadoComparativa.resultados.map((r: any, i: number) => {
+                    const d = r.datos || {};
+                    const numColors = ['#58a6ff','#3fb950','#f1b000','#00d4aa'];
+                    const c = numColors[i] || '#a78bfa';
+                    return (
+                      <div key={i} style={{
+                        background: '#0d1117', borderRadius: 12,
+                        border: `1px solid ${c}44`,
+                        overflow: 'hidden',
+                      }}>
+                        {/* Header tarjeta */}
+                        <div style={{ background: `${c}18`, borderBottom: `1px solid ${c}33`, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{
+                            width: 36, height: 36, borderRadius: '50%', background: c,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 16, fontWeight: 800, color: '#0d1117', flexShrink: 0,
+                          }}>{i + 1}</div>
+                          <div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: '#e6edf3' }}>{d.agente_operador || r.nombre.replace(/\.pdf$/i,'')}</div>
+                            <div style={{ fontSize: 11, color: '#8b949e', marginTop: 2 }}>{d.naviera || '-'} · {d.tipo_contenedor || '-'}</div>
+                          </div>
+                        </div>
+
+                        {/* Cuerpo tarjeta */}
+                        <div style={{ padding: '14px 18px' }}>
+                          {/* Fechas */}
+                          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                            <div style={{ flex: 1, background: 'rgba(63,185,80,0.08)', border: '1px solid #3fb95033', borderRadius: 8, padding: '8px 10px' }}>
+                              <div style={{ fontSize: 9, color: '#3fb950', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 }}>ETD Salida</div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: '#3fb950' }}>{d.etd || '-'}</div>
+                            </div>
+                            <div style={{ flex: 1, background: 'rgba(63,185,80,0.08)', border: '1px solid #3fb95033', borderRadius: 8, padding: '8px 10px' }}>
+                              <div style={{ fontSize: 9, color: '#3fb950', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 }}>ETA Llegada</div>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: '#3fb950' }}>{d.eta || '-'}</div>
+                            </div>
+                          </div>
+
+                          {/* Datos logísticos */}
+                          {[
+                            { label: 'Incoterm', val: d.incoterm },
+                            { label: 'Puerto Origen', val: d.puerto_origen },
+                            { label: 'Puerto Destino', val: d.puerto_destino },
+                            { label: 'Tiempo en Tránsito', val: d.tiempo_transito },
+                            { label: 'Validez', val: d.validez },
+                          ].map(({ label, val }) => (
+                            <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '6px 0', borderBottom: '1px solid #161b22' }}>
+                              <span style={{ fontSize: 11, color: '#8b949e' }}>{label}</span>
+                              <span style={{ fontSize: 12, color: '#e6edf3', textAlign: 'right', maxWidth: '60%' }}>{val || '-'}</span>
+                            </div>
+                          ))}
+
+                          {/* Montos */}
+                          <div style={{ marginTop: 12, marginBottom: 8 }}>
+                            <div style={{ fontSize: 9, color: '#58a6ff', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>DESGLOSE DE COSTOS</div>
+                            {[
+                              { label: 'Flete Marítimo', val: d.flete_maritimo },
+                              { label: 'Seguro', val: d.seguro },
+                              { label: 'Gastos en Origen', val: d.gastos_origen },
+                              { label: 'Gastos en Destino', val: d.gastos_destino },
+                            ].map(({ label, val }) => (
+                              <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #161b22' }}>
+                                <span style={{ fontSize: 11, color: '#8b949e' }}>{label}</span>
+                                <span style={{ fontSize: 12, color: '#58a6ff', fontWeight: 600 }}>{val || '-'}</span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Costo Total */}
+                          <div style={{
+                            background: `${c}15`, border: `1px solid ${c}44`,
+                            borderRadius: 8, padding: '10px 14px',
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10,
+                          }}>
+                            <span style={{ fontSize: 12, color: '#8b949e', fontWeight: 600 }}>★ COSTO TOTAL</span>
+                            <span style={{ fontSize: 16, fontWeight: 800, color: c }}>{d.costo_total || '-'}</span>
+                          </div>
+
+                          {/* Observaciones */}
+                          {d.observaciones && (
+                            <div style={{ background: '#161b22', borderRadius: 6, padding: '8px 10px' }}>
+                              <div style={{ fontSize: 9, color: '#8b949e', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>Observaciones</div>
+                              <div style={{ fontSize: 11, color: '#8b949e', lineHeight: 1.6 }}>{d.observaciones}</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Recomendación IA */}
                 {resultadoComparativa.recomendacion && (
                   <div style={{
                     background: 'linear-gradient(135deg,rgba(167,139,250,0.1),rgba(88,166,255,0.07))',
-                    border: '1px solid rgba(167,139,250,0.35)', borderRadius: 10,
-                    padding: '16px 20px', marginBottom: 20,
+                    border: '1px solid rgba(167,139,250,0.4)', borderRadius: 12,
+                    padding: '18px 22px',
                   }}>
-                    <div style={{ fontSize: 11, color: '#a78bfa', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 16 }}>✦</span> RECOMENDACIÓN DEL AGENTE IA — MEJOR OPCIÓN EN COSTO Y TIEMPO
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(167,139,250,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>✦</div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#a78bfa' }}>RECOMENDACIÓN DEL AGENTE IA</div>
+                        <div style={{ fontSize: 11, color: '#8b949e' }}>Mejor opción en costo y tiempo de tránsito</div>
+                      </div>
                     </div>
-                    <p style={{ margin: 0, fontSize: 13, color: '#e6edf3', lineHeight: 1.8 }}>
+                    <p style={{ margin: 0, fontSize: 13, color: '#e6edf3', lineHeight: 1.8, paddingLeft: 42 }}>
                       {resultadoComparativa.recomendacion}
                     </p>
                   </div>
                 )}
-
-                {/* Tabla */}
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
-                    <thead>
-                      <tr style={{ background: '#0d1117', borderBottom: '2px solid #21262d' }}>
-                        <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, color: '#8b949e', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 700, minWidth: 160 }}>
-                          Campo
-                        </th>
-                        {resultadoComparativa.resultados.map((r: any, i: number) => (
-                          <th key={i} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 12, color: '#a78bfa', fontWeight: 700, minWidth: 180 }}>
-                            <div style={{ fontSize: 10, color: '#8b949e', fontWeight: 400, marginBottom: 2 }}>Cotización {i + 1}</div>
-                            {r.nombre.replace('.pdf','').replace('.PDF','')}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(resultadoComparativa.campos as string[]).map((campo: string) => {
-                        const vals = resultadoComparativa.resultados.map((r: any) => r.datos?.[campo] || '-');
-                        const esCostoTotal = campo === 'costo_total';
-                        const esMonto = ['flete_maritimo','seguro','gastos_origen','gastos_destino'].includes(campo);
-                        const esFecha = ['etd','eta'].includes(campo);
-                        return (
-                          <tr key={campo} style={{
-                            borderBottom: '1px solid #21262d',
-                            background: esCostoTotal ? 'rgba(167,139,250,0.08)' : esMonto ? 'rgba(88,166,255,0.03)' : undefined,
-                          }}>
-                            <td style={{ padding: '10px 14px', fontSize: 12, color: '#8b949e', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                              {esCostoTotal && <span style={{ color: '#a78bfa', marginRight: 4 }}>★</span>}
-                              {esMonto && <span style={{ color: '#58a6ff', marginRight: 4 }}>$</span>}
-                              {esFecha && <span style={{ color: '#3fb950', marginRight: 4 }}>📅</span>}
-                              {ETIQUETAS_CAMPOS[campo] || campo}
-                            </td>
-                            {vals.map((val: string, i: number) => (
-                              <td key={i} style={{
-                                padding: '10px 14px', fontSize: 13,
-                                color: esCostoTotal ? '#a78bfa' : esMonto ? '#58a6ff' : esFecha ? '#3fb950' : '#e6edf3',
-                                fontWeight: esCostoTotal || esMonto ? 600 : 400,
-                              }}>
-                                {val}
-                              </td>
-                            ))}
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
               </div>
             )}
           </div>
