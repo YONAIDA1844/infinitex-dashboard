@@ -126,6 +126,11 @@ export default function AgenteTrafico() {
   const [verReporte, setVerReporte] = useState(false);
   const [enviandoReporte, setEnviandoReporte] = useState(false);
   const [reporteEnviado, setReporteEnviado] = useState(false);
+  const [verComparador, setVerComparador] = useState(false);
+  const [cotizacionesPDF, setCotizacionesPDF] = useState<{nombre:string;base64:string;size:string}[]>([]);
+  const [analizando, setAnalizando] = useState(false);
+  const [resultadoComparativa, setResultadoComparativa] = useState<any>(null);
+  const [errorComparativa, setErrorComparativa] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -540,6 +545,61 @@ export default function AgenteTrafico() {
     } catch (_) {}
 
     await handleNotificarEquipo(updated, true);
+  };
+
+  const handleAgregarCotizacion = (ev: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(ev.target.files || []);
+    files.forEach(file => {
+      if (cotizacionesPDF.length >= 4) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        const base64 = result.split(',')[1];
+        const size = (file.size / 1024).toFixed(0) + ' KB';
+        setCotizacionesPDF(prev => prev.length < 4 ? [...prev, { nombre: file.name, base64, size }] : prev);
+      };
+      reader.readAsDataURL(file);
+    });
+    ev.target.value = '';
+  };
+
+  const handleAnalizarCotizaciones = async () => {
+    if (cotizacionesPDF.length < 1) return;
+    setAnalizando(true);
+    setErrorComparativa('');
+    setResultadoComparativa(null);
+    try {
+      const res = await fetch('/api/comparar-cotizaciones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ archivos: cotizacionesPDF.map(c => ({ nombre: c.nombre, base64: c.base64 })) }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setResultadoComparativa(data);
+      } else {
+        setErrorComparativa(data.error || 'Error al analizar las cotizaciones');
+      }
+    } catch (e: any) {
+      setErrorComparativa('Error de conexión. Intenta de nuevo.');
+    }
+    setAnalizando(false);
+  };
+
+  const ETIQUETAS_CAMPOS: Record<string, string> = {
+    proveedor: 'Proveedor / Forwarder',
+    naviera: 'Naviera',
+    puerto_origen: 'Puerto Origen',
+    puerto_destino: 'Puerto Destino',
+    flete_maritimo: 'Flete Marítimo',
+    seguro: 'Seguro',
+    gastos_origen: 'Gastos en Origen',
+    gastos_destino: 'Gastos en Destino',
+    costo_total: 'Costo Total',
+    tiempo_transito: 'Tiempo en Tránsito',
+    validez: 'Validez',
+    incoterm: 'Incoterm',
+    observaciones: 'Observaciones',
   };
 
   const generarHTMLReporte = () => {
@@ -1395,6 +1455,175 @@ export default function AgenteTrafico() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* COMPARADOR DE COTIZACIONES */}
+      <div style={{ maxWidth: 1400, margin: '32px auto 0', padding: '0 32px' }}>
+        <button
+          onClick={() => setVerComparador(v => !v)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+            background: '#161b22', border: '1px solid rgba(167,139,250,0.25)',
+            borderRadius: verComparador ? '10px 10px 0 0' : 10, padding: '14px 20px',
+            cursor: 'pointer', color: '#a78bfa', fontSize: 14, fontWeight: 600, textAlign: 'left',
+            marginBottom: verComparador ? 0 : 8,
+          }}
+        >
+          <span style={{ fontSize: 18 }}>📄</span>
+          Comparador de Cotizaciones IA
+          <span style={{
+            background: 'rgba(167,139,250,0.15)', color: '#a78bfa', fontSize: 11, fontWeight: 700,
+            padding: '2px 8px', borderRadius: 20, border: '1px solid rgba(167,139,250,0.3)',
+          }}>{cotizacionesPDF.length}/4 cargadas</span>
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: '#8b949e' }}>{verComparador ? '▲ Ocultar' : '▼ Abrir'}</span>
+        </button>
+
+        {verComparador && (
+          <div style={{
+            background: '#161b22', border: '1px solid rgba(167,139,250,0.25)',
+            borderTop: 'none', borderRadius: '0 0 10px 10px', padding: 24,
+          }}>
+            <p style={{ margin: '0 0 16px', fontSize: 13, color: '#8b949e', lineHeight: 1.6 }}>
+              Carga hasta <strong style={{ color: '#a78bfa' }}>4 cotizaciones en PDF</strong>. El agente IA extrae los mismos campos de cada una y genera una tabla comparativa con recomendación.
+            </p>
+
+            {/* Zona de carga */}
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+              {cotizacionesPDF.map((c, i) => (
+                <div key={i} style={{
+                  background: '#0d1117', border: '1px solid rgba(167,139,250,0.35)',
+                  borderRadius: 10, padding: '12px 16px', minWidth: 180, maxWidth: 220,
+                  display: 'flex', flexDirection: 'column', gap: 6, position: 'relative',
+                }}>
+                  <span style={{ fontSize: 24 }}>📄</span>
+                  <div style={{ fontSize: 12, color: '#a78bfa', fontWeight: 600, wordBreak: 'break-all' }}>{c.nombre}</div>
+                  <div style={{ fontSize: 11, color: '#8b949e' }}>{c.size}</div>
+                  <button
+                    onClick={() => setCotizacionesPDF(prev => prev.filter((_, j) => j !== i))}
+                    style={{
+                      position: 'absolute', top: 8, right: 8, background: 'rgba(248,81,73,0.15)',
+                      border: 'none', color: '#f85149', borderRadius: 4, width: 22, height: 22,
+                      cursor: 'pointer', fontSize: 13, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}
+                  >✕</button>
+                </div>
+              ))}
+
+              {cotizacionesPDF.length < 4 && (
+                <label style={{
+                  background: 'rgba(167,139,250,0.05)', border: '2px dashed rgba(167,139,250,0.3)',
+                  borderRadius: 10, padding: '20px 24px', cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+                  minWidth: 160, transition: 'all 0.2s',
+                }}>
+                  <span style={{ fontSize: 28, opacity: 0.7 }}>+</span>
+                  <span style={{ fontSize: 12, color: '#a78bfa', textAlign: 'center' }}>Agregar cotización PDF</span>
+                  <input
+                    type="file" accept=".pdf" multiple
+                    style={{ display: 'none' }}
+                    onChange={handleAgregarCotizacion}
+                  />
+                </label>
+              )}
+            </div>
+
+            {/* Botón analizar */}
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 24 }}>
+              <button
+                onClick={handleAnalizarCotizaciones}
+                disabled={analizando || cotizacionesPDF.length < 1}
+                style={{
+                  background: analizando ? '#21262d' : 'linear-gradient(135deg,#a78bfa22,#a78bfa11)',
+                  color: analizando ? '#8b949e' : '#a78bfa',
+                  border: '1px solid #a78bfa55', borderRadius: 8,
+                  padding: '10px 24px', fontSize: 14, fontWeight: 700,
+                  cursor: analizando || cotizacionesPDF.length < 1 ? 'not-allowed' : 'pointer',
+                  opacity: cotizacionesPDF.length < 1 ? 0.5 : 1, transition: 'all 0.2s',
+                }}
+              >
+                {analizando ? '⏳ Analizando con IA...' : '✦ Analizar y Comparar'}
+              </button>
+              {cotizacionesPDF.length > 0 && (
+                <button
+                  onClick={() => { setCotizacionesPDF([]); setResultadoComparativa(null); setErrorComparativa(''); }}
+                  style={{ background: 'none', border: '1px solid #30363d', borderRadius: 8, color: '#8b949e', padding: '9px 16px', fontSize: 13, cursor: 'pointer' }}
+                >
+                  Limpiar todo
+                </button>
+              )}
+            </div>
+
+            {/* Error */}
+            {errorComparativa && (
+              <div style={{ background: 'rgba(248,81,73,0.1)', border: '1px solid #f8514933', borderRadius: 8, padding: '12px 16px', color: '#f85149', fontSize: 13, marginBottom: 20 }}>
+                ❌ {errorComparativa}
+              </div>
+            )}
+
+            {/* Tabla comparativa */}
+            {resultadoComparativa && (
+              <div>
+                {/* Recomendación IA */}
+                {resultadoComparativa.recomendacion && (
+                  <div style={{
+                    background: 'linear-gradient(135deg,rgba(167,139,250,0.08),rgba(88,166,255,0.06))',
+                    border: '1px solid rgba(167,139,250,0.3)', borderRadius: 10,
+                    padding: '14px 20px', marginBottom: 20,
+                  }}>
+                    <div style={{ fontSize: 11, color: '#a78bfa', fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>
+                      ✦ RECOMENDACIÓN DEL AGENTE IA
+                    </div>
+                    <p style={{ margin: 0, fontSize: 13, color: '#e6edf3', lineHeight: 1.7 }}>
+                      {resultadoComparativa.recomendacion}
+                    </p>
+                  </div>
+                )}
+
+                {/* Tabla */}
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 600 }}>
+                    <thead>
+                      <tr style={{ background: '#0d1117', borderBottom: '2px solid #21262d' }}>
+                        <th style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, color: '#8b949e', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 700, minWidth: 160 }}>
+                          Campo
+                        </th>
+                        {resultadoComparativa.resultados.map((r: any, i: number) => (
+                          <th key={i} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 12, color: '#a78bfa', fontWeight: 700, minWidth: 180 }}>
+                            <div style={{ fontSize: 10, color: '#8b949e', fontWeight: 400, marginBottom: 2 }}>Cotización {i + 1}</div>
+                            {r.nombre.replace('.pdf','').replace('.PDF','')}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(resultadoComparativa.campos as string[]).map((campo: string) => {
+                        const vals = resultadoComparativa.resultados.map((r: any) => r.datos?.[campo] || '-');
+                        const esCostoTotal = campo === 'costo_total';
+                        return (
+                          <tr key={campo} style={{ borderBottom: '1px solid #21262d', background: esCostoTotal ? 'rgba(167,139,250,0.05)' : undefined }}>
+                            <td style={{ padding: '10px 14px', fontSize: 12, color: '#8b949e', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                              {esCostoTotal && <span style={{ color: '#a78bfa', marginRight: 4 }}>★</span>}
+                              {ETIQUETAS_CAMPOS[campo] || campo}
+                            </td>
+                            {vals.map((val: string, i: number) => (
+                              <td key={i} style={{
+                                padding: '10px 14px', fontSize: 13,
+                                color: esCostoTotal ? '#a78bfa' : '#e6edf3',
+                                fontWeight: esCostoTotal ? 700 : 400,
+                              }}>
+                                {val}
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* HISTORIAL DE CARGAS FINALIZADAS */}
