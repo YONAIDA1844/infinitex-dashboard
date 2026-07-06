@@ -111,6 +111,7 @@ export default function AgenteTrafico() {
   const [formProveedor, setFormProveedor] = useState<any>({ ...FORM_PROVEEDOR_VACIO });
   const [guardandoProveedor, setGuardandoProveedor] = useState(false);
   const [formularioAbierto, setFormularioAbierto] = useState(false);
+  const [editandoId, setEditandoId] = useState<string|null>(null);
   const [form, setForm] = useState<any>({ ...FORM_VACIO });
   const [notifEstado, setNotifEstado] = useState('');
   const [guardando, setGuardando] = useState(false);
@@ -326,7 +327,7 @@ export default function AgenteTrafico() {
     setNotifEstado('');
 
     const nuevo = {
-      id: 'emb-' + Date.now(),
+      id: editandoId || ('emb-' + Date.now()),
       bl: form.bl.toUpperCase(),
       proveedor: form.proveedor,
       naviera: form.naviera,
@@ -354,46 +355,65 @@ export default function AgenteTrafico() {
       riesgo: form.riesgo || 'BAJO',
     };
 
-    setEmbarques((prev: any[]) => [nuevo, ...prev]);
+    if (editandoId) {
+      setEmbarques((prev: any[]) => prev.map((e: any) => e.id === editandoId ? nuevo : e));
+    } else {
+      setEmbarques((prev: any[]) => [nuevo, ...prev]);
+    }
     setEmbarqueSeleccionado(nuevo);
 
+    const payload = {
+      bl: nuevo.bl,
+      proveedor: nuevo.proveedor,
+      naviera: nuevo.naviera,
+      incoterm: nuevo.incoterm,
+      contenedor: nuevo.contenedor,
+      origen: nuevo.origen,
+      destino_puerto: nuevo.destino_puerto,
+      etd: nuevo.etd || null,
+      eta: nuevo.eta || null,
+      estado: nuevo.estado,
+      peso_kg: nuevo.peso_kg,
+      cbm: nuevo.cbm,
+      pallets: nuevo.pallets,
+      descripcion: nuevo.descripcion,
+      notas: nuevo.notas,
+      llegada_real: nuevo.llegada_real || null,
+      llegada_anker: nuevo.llegada_anker || null,
+      proximo_hito: nuevo.proximo_hito || '',
+      riesgo: nuevo.riesgo || 'BAJO',
+    };
+
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/embarques`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-          'Prefer': 'return=minimal',
-        },
-        body: JSON.stringify({
-          bl: nuevo.bl,
-          proveedor: nuevo.proveedor,
-          naviera: nuevo.naviera,
-          incoterm: nuevo.incoterm,
-          contenedor: nuevo.contenedor,
-          origen: nuevo.origen,
-          destino_puerto: nuevo.destino_puerto,
-          etd: nuevo.etd || null,
-          eta: nuevo.eta || null,
-          estado: nuevo.estado,
-          peso_kg: nuevo.peso_kg,
-          cbm: nuevo.cbm,
-          pallets: nuevo.pallets,
-          descripcion: nuevo.descripcion,
-          notas: nuevo.notas,
-          llegada_real: nuevo.llegada_real || null,
-          llegada_anker: nuevo.llegada_anker || null,
-          proximo_hito: nuevo.proximo_hito || '',
-          riesgo: nuevo.riesgo || 'BAJO',
-          schema: 'test',
-        }),
-      });
+      if (editandoId) {
+        await fetch(`${SUPABASE_URL}/rest/v1/trafico_embarques?id=eq.${editandoId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify({ ...payload, updated_at: new Date().toISOString() }),
+        });
+      } else {
+        await fetch(`${SUPABASE_URL}/rest/v1/trafico_embarques`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify({ ...payload, activo: true }),
+        });
+      }
     } catch (_) {}
 
     setNotifEstado('ok');
-    setNotifMsg(`Embarque ${nuevo.bl} registrado correctamente.`);
+    setNotifMsg(editandoId ? `Embarque ${nuevo.bl} actualizado correctamente.` : `Embarque ${nuevo.bl} registrado correctamente.`);
     setFormularioAbierto(false);
+    setEditandoId(null);
     setForm({ ...FORM_VACIO });
     setGuardando(false);
   };
@@ -727,7 +747,7 @@ export default function AgenteTrafico() {
         {/* BOTONES PRINCIPALES */}
         <div style={{ marginBottom: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button
-            onClick={() => { setFormularioAbierto(!formularioAbierto); setNotifMsg(''); }}
+            onClick={() => { setFormularioAbierto(!formularioAbierto); setEditandoId(null); setForm({...FORM_VACIO}); setNotifMsg(''); }}
             style={{
               background: formularioAbierto ? '#21262d' : '#58a6ff',
               color: formularioAbierto ? '#e6edf3' : '#0d1117',
@@ -946,7 +966,7 @@ export default function AgenteTrafico() {
             padding: 24, marginBottom: 28,
           }}>
             <h3 style={{ margin: '0 0 20px 0', fontSize: 16, color: '#58a6ff', fontWeight: 600 }}>
-              📋 Datos del Nuevo Embarque
+              {editandoId ? '✏ Editando Embarque' : '📋 Datos del Nuevo Embarque'}
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
               {/* BL */}
@@ -1216,6 +1236,34 @@ export default function AgenteTrafico() {
                         border: `1px solid ${ESTADO_COLORS[embarqueSeleccionado.estado] || '#8b949e'}44`,
                       }}>{embarqueSeleccionado.estado}</span>
                     </div>
+                    <button
+                      onClick={() => {
+                        const e = embarqueSeleccionado;
+                        setForm({
+                          bl: e.bl, proveedor: e.proveedor || '', naviera: e.naviera || '',
+                          incoterm: e.incoterm || 'FOB', contenedor: e.contenedor || '40HC',
+                          origen: e.origen || '', destino_puerto: e.destino_puerto || 'Manzanillo, Panama',
+                          etd: e.etd || '', eta: e.eta || '', peso_kg: e.peso_kg || '',
+                          cbm: e.cbm || '', pallets: e.pallets || '', descripcion: e.descripcion || '',
+                          estado: e.estado || 'En Puerto Origen',
+                          doc_bl: e.documentos?.bl || false, doc_packing: e.documentos?.packing_list || false,
+                          doc_factura: e.documentos?.factura || false, doc_permiso: e.documentos?.permiso || false,
+                          notas: e.notas || '', llegada_real: e.llegada_real || '',
+                          llegada_anker: e.llegada_anker || '', proximo_hito: e.proximo_hito || '',
+                          riesgo: e.riesgo || 'BAJO',
+                        });
+                        setEditandoId(e.id);
+                        setFormularioAbierto(true);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      style={{
+                        background: 'rgba(88,166,255,0.1)', color: '#58a6ff',
+                        border: '1px solid #58a6ff44', borderRadius: 8,
+                        padding: '7px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      ✏ Editar
+                    </button>
                   </div>
                   {/* Actualizar estado + Notificar */}
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
