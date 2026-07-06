@@ -526,16 +526,109 @@ export default function AgenteTrafico() {
     const MESES_L = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     const MESES_C = ['ene.','feb.','mar.','abr.','may.','jun.','jul.','ago.','sep.','oct.','nov.','dic.'];
     const fmt = (d: string|null) => { if(!d) return '-'; const dt=new Date(d+'T12:00:00Z'); return MESES_C[dt.getUTCMonth()]+' '+dt.getUTCDate(); };
+    const fmtLarga = (d: string|null) => { if(!d) return '-'; const dt=new Date(d+'T12:00:00Z'); return `${dt.getUTCDate()} de ${MESES_L[dt.getUTCMonth()]} de ${dt.getUTCFullYear()}`; };
     const hoy = new Date();
     const fecha = `${hoy.getDate()} de ${MESES_L[hoy.getMonth()]} de ${hoy.getFullYear()}`;
-    const eStyle = (e: string) => { const ev=(e||'').toLowerCase(); if(ev.includes('transito')||ev.includes('tránsito')) return {bg:'rgba(88,166,255,0.15)',c:'#58a6ff'}; if(ev.includes('cotizaci')) return {bg:'rgba(167,139,250,0.15)',c:'#a78bfa'}; if(ev.includes('liberado')||ev.includes('listo')) return {bg:'rgba(63,185,80,0.15)',c:'#3fb950'}; if(ev.includes('disponible')) return {bg:'rgba(0,212,170,0.15)',c:'#00d4aa'}; if(ev.includes('aduana')) return {bg:'rgba(248,81,73,0.15)',c:'#f85149'}; return {bg:'rgba(139,148,158,0.15)',c:'#8b949e'}; };
-    const rColor = (r: string) => { if(r==='ALTO') return {bg:'rgba(248,81,73,0.12)',c:'#f85149',d:'#f85149'}; if(r==='MEDIO') return {bg:'rgba(210,153,34,0.12)',c:'#d29922',d:'#f1b000'}; return {bg:'rgba(63,185,80,0.12)',c:'#3fb950',d:'#3fb950'}; };
-    const transito = embarques.filter(e=>(e.estado||'').toLowerCase().includes('transito')||(e.estado||'').toLowerCase().includes('tránsito'));
-    const cotizacion = embarques.filter(e=>(e.estado||'').toLowerCase().includes('cotizaci'));
-    const despachar = embarques.filter(e=>(e.estado||'').toLowerCase().includes('liberado')||(e.estado||'').toLowerCase().includes('listo'));
-    const disponible = embarques.filter(e=>(e.estado||'').toLowerCase().includes('disponible'));
-    const filas = embarques.map(e => { const es=eStyle(e.estado), r=rColor(e.riesgo||'BAJO'); return `<tr style="border-bottom:1px solid #e8edf2;"><td style="padding:10px 12px;font-size:12px;color:#1a2332;font-weight:600;">${e.bl}</td><td style="padding:10px 12px;"><span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${es.bg};color:${es.c};white-space:nowrap;">${e.estado}</span></td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.etd)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.eta)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.llegada_real)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.llegada_anker)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.fecha_disponible)}</td><td style="padding:10px 12px;font-size:12px;color:#2d3748;">${e.proximo_hito||'-'}</td><td style="padding:10px 12px;text-align:center;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${r.bg};color:${r.c};"><span style="width:7px;height:7px;border-radius:50%;background:${r.d};display:inline-block;"></span>${e.riesgo||'BAJO'}</span></td></tr>`; }).join('');
-    return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:20px;background:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"><table width="680" cellpadding="0" cellspacing="0" style="max-width:680px;margin:0 auto;"><tr><td style="background:linear-gradient(135deg,#1a2332,#2d4a6e);border-radius:12px 12px 0 0;padding:24px 28px;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td><div style="font-size:10px;color:#7fb3d3;letter-spacing:3px;text-transform:uppercase;">InfiniteX · Sicoben Ediciones</div><div style="font-size:22px;font-weight:800;color:#fff;margin-top:4px;">SEGUIMIENTO DIARIO DE IMPORTACIONES</div><div style="font-size:13px;color:#58a6ff;font-weight:600;margin-top:4px;">TRÁFICO 2026</div></td><td align="right"><div style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 14px;text-align:center;"><div style="font-size:9px;color:#7fb3d3;letter-spacing:2px;">FECHA DEL REPORTE</div><div style="font-size:12px;font-weight:700;color:#fff;margin-top:2px;">${fecha}</div></div></td></tr></table></td></tr><tr><td style="background:#fff;padding:18px 28px;border-bottom:2px solid #e8edf2;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td style="width:25%;text-align:center;padding:0 6px;"><div style="background:#e8f4fd;border-radius:10px;padding:14px 8px;"><div style="font-size:32px;font-weight:800;color:#3498db;">${transito.length}</div><div style="font-size:9px;color:#718096;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:3px;">En Tránsito</div></div></td><td style="width:25%;text-align:center;padding:0 6px;"><div style="background:#e8fdf0;border-radius:10px;padding:14px 8px;"><div style="font-size:32px;font-weight:800;color:#27ae60;">${despachar.length}</div><div style="font-size:9px;color:#718096;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:3px;">Listo Despachar</div></div></td><td style="width:25%;text-align:center;padding:0 6px;"><div style="background:#f3e8fd;border-radius:10px;padding:14px 8px;"><div style="font-size:32px;font-weight:800;color:#8e44ad;">${cotizacion.length}</div><div style="font-size:9px;color:#718096;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:3px;">En Cotización</div></div></td><td style="width:25%;text-align:center;padding:0 6px;"><div style="background:#e8fdf8;border-radius:10px;padding:14px 8px;"><div style="font-size:32px;font-weight:800;color:#00d4aa;">${disponible.length}</div><div style="font-size:9px;color:#718096;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:3px;">Disponible Anker</div></div></td></tr></table></td></tr><tr><td style="background:#fff;padding:0;"><div style="padding:16px 28px 8px;"><div style="font-size:10px;font-weight:700;color:#3498db;letter-spacing:2px;text-transform:uppercase;">DETALLE DE EMBARQUES</div></div><div style="overflow-x:auto;"><table width="100%" cellpadding="0" cellspacing="0"><thead><tr style="background:#f7f9fc;border-bottom:2px solid #e8edf2;"><th style="padding:9px 10px;text-align:left;font-size:9px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;white-space:nowrap;">PROYECTO</th><th style="padding:9px 10px;text-align:left;font-size:9px;color:#718096;text-transform:uppercase;font-weight:700;">ESTADO</th><th style="padding:9px 10px;text-align:center;font-size:9px;color:#718096;text-transform:uppercase;font-weight:700;">ETD</th><th style="padding:9px 10px;text-align:center;font-size:9px;color:#718096;text-transform:uppercase;font-weight:700;">ETA</th><th style="padding:9px 10px;text-align:center;font-size:9px;color:#718096;text-transform:uppercase;font-weight:700;">LLEGÓ</th><th style="padding:9px 10px;text-align:center;font-size:9px;color:#718096;text-transform:uppercase;font-weight:700;white-space:nowrap;">LLEGADA ANKER</th><th style="padding:9px 10px;text-align:center;font-size:9px;color:#718096;text-transform:uppercase;font-weight:700;white-space:nowrap;">DISP. ANKER</th><th style="padding:9px 10px;text-align:left;font-size:9px;color:#718096;text-transform:uppercase;font-weight:700;white-space:nowrap;">PRÓXIMO HITO</th><th style="padding:9px 10px;text-align:center;font-size:9px;color:#718096;text-transform:uppercase;font-weight:700;">RIESGO</th></tr></thead><tbody>${filas}</tbody></table></div></td></tr><tr><td style="background:#f7f9fc;padding:16px 28px;border-top:2px solid #e8edf2;"><div style="font-size:9px;font-weight:700;color:#2d3748;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">RESUMEN GENERAL</div><div style="background:#fff;border-radius:8px;padding:12px 14px;font-size:12px;color:#4a5568;line-height:2;box-shadow:0 1px 4px rgba(0,0,0,0.06);"><span style="color:#3498db;">●</span> ${transito.length} embarque(s) en tránsito &nbsp;·&nbsp; <span style="color:#27ae60;">●</span> ${despachar.length} listo(s) para despachar &nbsp;·&nbsp; <span style="color:#8e44ad;">●</span> ${cotizacion.length} en cotización &nbsp;·&nbsp; <span style="color:#00d4aa;">●</span> ${disponible.length} disponibles en Anker</div></td></tr><tr><td style="background:#1a2332;border-radius:0 0 12px 12px;padding:14px 28px;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td><div style="font-size:10px;color:#7fb3d3;">KADI INTERNACIONAL S.A. · SICOBEN EDICIONES</div><div style="font-size:9px;color:#4a6280;margin-top:2px;">Generado automáticamente por InfiniteX · ${fecha}</div></td><td align="right"><div style="font-size:16px;font-weight:800;letter-spacing:2px;"><span style="color:#58a6ff;">INFINITE</span><span style="color:#4a6280;"> X</span></div></td></tr></table></td></tr></table></body></html>`;
+    const grupoEstado = (estado: string, notas: string) => { const e=(estado||'').toLowerCase(),n=(notas||'').toLowerCase(); if(e.includes('transito')||e.includes('tránsito')||e.includes('embarcado')) return 'transito'; if(n.includes('cotizacion')||n.includes('cotización')||e.includes('cotizacion')||e.includes('cotización')) return 'cotizacion'; return 'proceso'; };
+    const esListoDespachar = (estado: string) => (estado||'').toLowerCase().includes('liberado')||(estado||'').toLowerCase().includes('listo');
+    const eStyle = (e: string) => { const ev=(e||'').toLowerCase(); if(ev.includes('transito')||ev.includes('tránsito')) return {bg:'rgba(88,166,255,0.15)',color:'#58a6ff'}; if(ev.includes('cotizaci')) return {bg:'rgba(167,139,250,0.15)',color:'#a78bfa'}; if(ev.includes('liberado')||ev.includes('listo')) return {bg:'rgba(63,185,80,0.15)',color:'#3fb950'}; if(ev.includes('aduana')) return {bg:'rgba(248,81,73,0.15)',color:'#f85149'}; if(ev.includes('disponible')) return {bg:'rgba(0,212,170,0.15)',color:'#00d4aa'}; return {bg:'rgba(139,148,158,0.15)',color:'#8b949e'}; };
+    const riesgoColor = (r: string) => { if(r==='ALTO') return {bg:'rgba(248,81,73,0.12)',color:'#f85149',dot:'#f85149'}; if(r==='MEDIO') return {bg:'rgba(210,153,34,0.12)',color:'#d29922',dot:'#f1b000'}; return {bg:'rgba(63,185,80,0.12)',color:'#3fb950',dot:'#3fb950'}; };
+    const transito   = embarques.filter((e: any) => grupoEstado(e.estado,e.notas)==='transito');
+    const cotizacion = embarques.filter((e: any) => grupoEstado(e.estado,e.notas)==='cotizacion');
+    const despachar  = embarques.filter((e: any) => esListoDespachar(e.estado));
+    const disponible = embarques.filter((e: any) => (e.estado||'').toLowerCase().includes('disponible'));
+    const proximosAnker = embarques
+      .filter((e: any) => e.llegada_anker && !disponible.includes(e))
+      .sort((a: any,b: any) => a.llegada_anker.localeCompare(b.llegada_anker))
+      .slice(0,4);
+    const acciones: string[] = [];
+    embarques.forEach((e: any) => {
+      if((e.riesgo==='ALTO'||e.riesgo==='MEDIO')&&e.proximo_hito) acciones.push(`Dar seguimiento a ${e.bl}: ${e.proximo_hito}`);
+      if(esListoDespachar(e.estado)) acciones.push(`Confirmar fecha de despacho de ${e.bl} con el proveedor`);
+      if(grupoEstado(e.estado,e.notas)==='cotizacion') acciones.push(`Avanzar aprobación de cotización: ${e.bl}`);
+    });
+    const accionesUnicas = [...new Set(acciones)].slice(0,5);
+    const filasTabla = embarques.map((e: any) => {
+      const es=eStyle(e.estado), r=riesgoColor(e.riesgo||'BAJO');
+      return `<tr style="border-bottom:1px solid #e8edf2;"><td style="padding:10px 12px;font-size:12px;color:#1a2332;font-weight:600;">${e.bl||'-'}</td><td style="padding:10px 12px;"><span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${es.bg};color:${es.color};white-space:nowrap;">${e.estado||'-'}</span></td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.etd)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.eta)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.llegada_real)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.llegada_anker)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${e.fecha_disponible?fmt(e.fecha_disponible):'-'}</td><td style="padding:10px 12px;font-size:12px;color:#2d3748;">${e.proximo_hito||'-'}</td><td style="padding:10px 12px;text-align:center;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${r.bg};color:${r.color};"><span style="width:7px;height:7px;border-radius:50%;background:${r.dot};display:inline-block;"></span>${e.riesgo||'BAJO'}</span></td></tr>`;
+    }).join('');
+    const tarjetasProximos = proximosAnker.map((e: any) => {
+      const dt=new Date(e.llegada_anker+'T12:00:00Z');
+      return `<div style="background:#fff;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #3498db;box-shadow:0 1px 4px rgba(0,0,0,0.06);"><div style="font-size:11px;font-weight:800;color:#3498db;">${String(dt.getUTCDate()).padStart(2,'0')} ${MESES_L[dt.getUTCMonth()].substring(0,3).toUpperCase()}</div><div style="font-size:12px;font-weight:700;color:#1a2332;margin-top:3px;">${e.bl}</div><div style="font-size:11px;color:#718096;margin-top:2px;">Llegada Anker: ${fmtLarga(e.llegada_anker)}</div></div>`;
+    }).join('') || '<div style="color:#a0aec0;font-size:12px;padding:10px;">Sin próximas llegadas registradas</div>';
+    const tarjetasAcciones = accionesUnicas.map(a =>
+      `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #e8edf2;"><div style="width:20px;height:20px;border-radius:4px;background:#e8f5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;"><span style="color:#3fb950;font-size:12px;">&#10003;</span></div><div style="font-size:12px;color:#2d3748;line-height:1.5;">${a}</div></div>`
+    ).join('') || '<div style="color:#a0aec0;font-size:12px;padding:10px;">Sin acciones pendientes</div>';
+
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f8;padding:20px 10px;"><tr><td align="center">
+<table width="700" cellpadding="0" cellspacing="0" style="max-width:700px;width:100%;">
+<tr><td style="background:linear-gradient(135deg,#1a2332 0%,#2d4a6e 100%);border-radius:12px 12px 0 0;padding:28px 32px;">
+  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td><div style="font-size:11px;color:#7fb3d3;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;">InfiniteX · Sicoben Ediciones</div>
+      <div style="font-size:24px;font-weight:800;color:#fff;letter-spacing:1px;">SEGUIMIENTO DIARIO DE IMPORTACIONES</div>
+      <div style="font-size:14px;color:#58a6ff;font-weight:600;margin-top:4px;">TRÁFICO 2026</div></td>
+    <td align="right"><div style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 16px;text-align:center;">
+      <div style="font-size:10px;color:#7fb3d3;letter-spacing:2px;">FECHA DEL REPORTE</div>
+      <div style="font-size:13px;font-weight:700;color:#fff;margin-top:2px;">${fecha}</div>
+    </div></td>
+  </tr></table>
+</td></tr>
+<tr><td style="background:#fff;padding:20px 32px;border-bottom:2px solid #e8edf2;">
+  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td style="width:25%;text-align:center;padding:0 8px;"><div style="background:#e8f4fd;border-radius:10px;padding:16px 8px;"><div style="font-size:32px;font-weight:800;color:#3498db;">${transito.length}</div><div style="font-size:10px;color:#718096;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:4px;">En Tránsito</div></div></td>
+    <td style="width:25%;text-align:center;padding:0 8px;"><div style="background:#e8fdf0;border-radius:10px;padding:16px 8px;"><div style="font-size:32px;font-weight:800;color:#27ae60;">${despachar.length}</div><div style="font-size:10px;color:#718096;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:4px;">Listo Despachar</div></div></td>
+    <td style="width:25%;text-align:center;padding:0 8px;"><div style="background:#f3e8fd;border-radius:10px;padding:16px 8px;"><div style="font-size:32px;font-weight:800;color:#8e44ad;">${cotizacion.length}</div><div style="font-size:10px;color:#718096;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:4px;">En Cotización</div></div></td>
+    <td style="width:25%;text-align:center;padding:0 8px;"><div style="background:#e8fdf8;border-radius:10px;padding:16px 8px;"><div style="font-size:32px;font-weight:800;color:#00d4aa;">${disponible.length}</div><div style="font-size:10px;color:#718096;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:4px;">Disponible Anker</div></div></td>
+  </tr></table>
+</td></tr>
+<tr><td style="background:#fff;padding:0;">
+  <div style="padding:20px 32px 10px;"><div style="font-size:11px;font-weight:700;color:#3498db;letter-spacing:2px;text-transform:uppercase;">DETALLE DE EMBARQUES</div></div>
+  <div style="overflow-x:auto;"><table width="100%" cellpadding="0" cellspacing="0" style="min-width:650px;">
+    <thead><tr style="background:#f7f9fc;border-bottom:2px solid #e8edf2;">
+      <th style="padding:10px 12px;text-align:left;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">PROYECTO</th>
+      <th style="padding:10px 12px;text-align:left;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">ESTADO</th>
+      <th style="padding:10px 12px;text-align:center;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">ETD</th>
+      <th style="padding:10px 12px;text-align:center;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">ETA</th>
+      <th style="padding:10px 12px;text-align:center;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">LLEGÓ</th>
+      <th style="padding:10px 12px;text-align:center;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">LLEGADA ANKER</th>
+      <th style="padding:10px 12px;text-align:center;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">DISP. ANKER</th>
+      <th style="padding:10px 12px;text-align:left;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">PRÓXIMO HITO</th>
+      <th style="padding:10px 12px;text-align:center;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">RIESGO</th>
+    </tr></thead>
+    <tbody>${filasTabla}</tbody>
+  </table></div>
+</td></tr>
+<tr><td style="background:#f7f9fc;padding:20px 32px;border-top:2px solid #e8edf2;">
+  <table width="100%" cellpadding="0" cellspacing="0"><tr valign="top">
+    <td style="width:30%;padding-right:16px;">
+      <div style="font-size:11px;font-weight:700;color:#2d3748;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">RESUMEN GENERAL</div>
+      <div style="background:#fff;border-radius:8px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+        <div style="font-size:12px;color:#4a5568;margin-bottom:8px;"><span style="color:#3498db;">&#9679;</span> ${transito.length} embarque(s) en tránsito</div>
+        <div style="font-size:12px;color:#4a5568;margin-bottom:8px;"><span style="color:#27ae60;">&#9679;</span> ${despachar.length} embarque(s) listo(s) para despachar</div>
+        <div style="font-size:12px;color:#4a5568;margin-bottom:8px;"><span style="color:#8e44ad;">&#9679;</span> ${cotizacion.length} embarque(s) en cotización</div>
+        <div style="font-size:12px;color:#4a5568;"><span style="color:#00d4aa;">&#9679;</span> ${disponible.length} embarque(s) disponibles en Anker</div>
+      </div>
+    </td>
+    <td style="width:35%;padding:0 8px;">
+      <div style="font-size:11px;font-weight:700;color:#2d3748;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">PRÓXIMAS LLEGADAS A ANKER</div>
+      ${tarjetasProximos}
+    </td>
+    <td style="width:35%;padding-left:16px;">
+      <div style="font-size:11px;font-weight:700;color:#2d3748;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">ACCIONES RECOMENDADAS PARA HOY</div>
+      <div style="background:#fff;border-radius:8px;padding:10px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">${tarjetasAcciones}</div>
+    </td>
+  </tr></table>
+</td></tr>
+<tr><td style="background:#1a2332;border-radius:0 0 12px 12px;padding:16px 32px;">
+  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td><div style="font-size:11px;color:#7fb3d3;">KADI INTERNACIONAL S.A. · SICOBEN EDICIONES</div>
+      <div style="font-size:10px;color:#4a6280;margin-top:2px;">Generado automáticamente por InfiniteX · ${fecha}</div></td>
+    <td align="right"><div style="font-size:16px;font-weight:800;letter-spacing:2px;"><span style="color:#58a6ff;">INFINITE</span><span style="color:#4a6280;"> X</span></div></td>
+  </tr></table>
+</td></tr>
+</table></td></tr></table></body></html>`;
   };
 
   const handleEnviarReporte = async () => {
