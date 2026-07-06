@@ -122,6 +122,9 @@ export default function AgenteTrafico() {
   const [historial, setHistorial] = useState<any[]>([]);
   const [finalizando, setFinalizando] = useState(false);
   const [verHistorial, setVerHistorial] = useState(false);
+  const [verReporte, setVerReporte] = useState(false);
+  const [enviandoReporte, setEnviandoReporte] = useState(false);
+  const [reporteEnviado, setReporteEnviado] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -519,6 +522,37 @@ export default function AgenteTrafico() {
     await handleNotificarEquipo(updated, true);
   };
 
+  const generarHTMLReporte = () => {
+    const MESES_L = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const MESES_C = ['ene.','feb.','mar.','abr.','may.','jun.','jul.','ago.','sep.','oct.','nov.','dic.'];
+    const fmt = (d: string|null) => { if(!d) return '-'; const dt=new Date(d+'T12:00:00Z'); return MESES_C[dt.getUTCMonth()]+' '+dt.getUTCDate(); };
+    const hoy = new Date();
+    const fecha = `${hoy.getDate()} de ${MESES_L[hoy.getMonth()]} de ${hoy.getFullYear()}`;
+    const eStyle = (e: string) => { const ev=(e||'').toLowerCase(); if(ev.includes('transito')||ev.includes('tránsito')) return {bg:'rgba(88,166,255,0.15)',c:'#58a6ff'}; if(ev.includes('cotizaci')) return {bg:'rgba(167,139,250,0.15)',c:'#a78bfa'}; if(ev.includes('liberado')||ev.includes('listo')) return {bg:'rgba(63,185,80,0.15)',c:'#3fb950'}; if(ev.includes('disponible')) return {bg:'rgba(0,212,170,0.15)',c:'#00d4aa'}; if(ev.includes('aduana')) return {bg:'rgba(248,81,73,0.15)',c:'#f85149'}; return {bg:'rgba(139,148,158,0.15)',c:'#8b949e'}; };
+    const rColor = (r: string) => { if(r==='ALTO') return {bg:'rgba(248,81,73,0.12)',c:'#f85149',d:'#f85149'}; if(r==='MEDIO') return {bg:'rgba(210,153,34,0.12)',c:'#d29922',d:'#f1b000'}; return {bg:'rgba(63,185,80,0.12)',c:'#3fb950',d:'#3fb950'}; };
+    const transito = embarques.filter(e=>(e.estado||'').toLowerCase().includes('transito')||(e.estado||'').toLowerCase().includes('tránsito'));
+    const cotizacion = embarques.filter(e=>(e.estado||'').toLowerCase().includes('cotizaci'));
+    const despachar = embarques.filter(e=>(e.estado||'').toLowerCase().includes('liberado')||(e.estado||'').toLowerCase().includes('listo'));
+    const disponible = embarques.filter(e=>(e.estado||'').toLowerCase().includes('disponible'));
+    const filas = embarques.map(e => { const es=eStyle(e.estado), r=rColor(e.riesgo||'BAJO'); return `<tr style="border-bottom:1px solid #e8edf2;"><td style="padding:10px 12px;font-size:12px;color:#1a2332;font-weight:600;">${e.bl}</td><td style="padding:10px 12px;"><span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${es.bg};color:${es.c};white-space:nowrap;">${e.estado}</span></td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.etd)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.eta)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.llegada_real)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.llegada_anker)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.fecha_disponible)}</td><td style="padding:10px 12px;font-size:12px;color:#2d3748;">${e.proximo_hito||'-'}</td><td style="padding:10px 12px;text-align:center;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${r.bg};color:${r.c};"><span style="width:7px;height:7px;border-radius:50%;background:${r.d};display:inline-block;"></span>${e.riesgo||'BAJO'}</span></td></tr>`; }).join('');
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:20px;background:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"><table width="680" cellpadding="0" cellspacing="0" style="max-width:680px;margin:0 auto;"><tr><td style="background:linear-gradient(135deg,#1a2332,#2d4a6e);border-radius:12px 12px 0 0;padding:24px 28px;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td><div style="font-size:10px;color:#7fb3d3;letter-spacing:3px;text-transform:uppercase;">InfiniteX · Sicoben Ediciones</div><div style="font-size:22px;font-weight:800;color:#fff;margin-top:4px;">SEGUIMIENTO DIARIO DE IMPORTACIONES</div><div style="font-size:13px;color:#58a6ff;font-weight:600;margin-top:4px;">TRÁFICO 2026</div></td><td align="right"><div style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 14px;text-align:center;"><div style="font-size:9px;color:#7fb3d3;letter-spacing:2px;">FECHA DEL REPORTE</div><div style="font-size:12px;font-weight:700;color:#fff;margin-top:2px;">${fecha}</div></div></td></tr></table></td></tr><tr><td style="background:#fff;padding:18px 28px;border-bottom:2px solid #e8edf2;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td style="width:25%;text-align:center;padding:0 6px;"><div style="background:#e8f4fd;border-radius:10px;padding:14px 8px;"><div style="font-size:32px;font-weight:800;color:#3498db;">${transito.length}</div><div style="font-size:9px;color:#718096;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:3px;">En Tránsito</div></div></td><td style="width:25%;text-align:center;padding:0 6px;"><div style="background:#e8fdf0;border-radius:10px;padding:14px 8px;"><div style="font-size:32px;font-weight:800;color:#27ae60;">${despachar.length}</div><div style="font-size:9px;color:#718096;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:3px;">Listo Despachar</div></div></td><td style="width:25%;text-align:center;padding:0 6px;"><div style="background:#f3e8fd;border-radius:10px;padding:14px 8px;"><div style="font-size:32px;font-weight:800;color:#8e44ad;">${cotizacion.length}</div><div style="font-size:9px;color:#718096;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:3px;">En Cotización</div></div></td><td style="width:25%;text-align:center;padding:0 6px;"><div style="background:#e8fdf8;border-radius:10px;padding:14px 8px;"><div style="font-size:32px;font-weight:800;color:#00d4aa;">${disponible.length}</div><div style="font-size:9px;color:#718096;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:3px;">Disponible Anker</div></div></td></tr></table></td></tr><tr><td style="background:#fff;padding:0;"><div style="padding:16px 28px 8px;"><div style="font-size:10px;font-weight:700;color:#3498db;letter-spacing:2px;text-transform:uppercase;">DETALLE DE EMBARQUES</div></div><div style="overflow-x:auto;"><table width="100%" cellpadding="0" cellspacing="0"><thead><tr style="background:#f7f9fc;border-bottom:2px solid #e8edf2;"><th style="padding:9px 10px;text-align:left;font-size:9px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;white-space:nowrap;">PROYECTO</th><th style="padding:9px 10px;text-align:left;font-size:9px;color:#718096;text-transform:uppercase;font-weight:700;">ESTADO</th><th style="padding:9px 10px;text-align:center;font-size:9px;color:#718096;text-transform:uppercase;font-weight:700;">ETD</th><th style="padding:9px 10px;text-align:center;font-size:9px;color:#718096;text-transform:uppercase;font-weight:700;">ETA</th><th style="padding:9px 10px;text-align:center;font-size:9px;color:#718096;text-transform:uppercase;font-weight:700;">LLEGÓ</th><th style="padding:9px 10px;text-align:center;font-size:9px;color:#718096;text-transform:uppercase;font-weight:700;white-space:nowrap;">LLEGADA ANKER</th><th style="padding:9px 10px;text-align:center;font-size:9px;color:#718096;text-transform:uppercase;font-weight:700;white-space:nowrap;">DISP. ANKER</th><th style="padding:9px 10px;text-align:left;font-size:9px;color:#718096;text-transform:uppercase;font-weight:700;white-space:nowrap;">PRÓXIMO HITO</th><th style="padding:9px 10px;text-align:center;font-size:9px;color:#718096;text-transform:uppercase;font-weight:700;">RIESGO</th></tr></thead><tbody>${filas}</tbody></table></div></td></tr><tr><td style="background:#f7f9fc;padding:16px 28px;border-top:2px solid #e8edf2;"><div style="font-size:9px;font-weight:700;color:#2d3748;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;">RESUMEN GENERAL</div><div style="background:#fff;border-radius:8px;padding:12px 14px;font-size:12px;color:#4a5568;line-height:2;box-shadow:0 1px 4px rgba(0,0,0,0.06);"><span style="color:#3498db;">●</span> ${transito.length} embarque(s) en tránsito &nbsp;·&nbsp; <span style="color:#27ae60;">●</span> ${despachar.length} listo(s) para despachar &nbsp;·&nbsp; <span style="color:#8e44ad;">●</span> ${cotizacion.length} en cotización &nbsp;·&nbsp; <span style="color:#00d4aa;">●</span> ${disponible.length} disponibles en Anker</div></td></tr><tr><td style="background:#1a2332;border-radius:0 0 12px 12px;padding:14px 28px;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td><div style="font-size:10px;color:#7fb3d3;">KADI INTERNACIONAL S.A. · SICOBEN EDICIONES</div><div style="font-size:9px;color:#4a6280;margin-top:2px;">Generado automáticamente por InfiniteX · ${fecha}</div></td><td align="right"><div style="font-size:16px;font-weight:800;letter-spacing:2px;"><span style="color:#58a6ff;">INFINITE</span><span style="color:#4a6280;"> X</span></div></td></tr></table></td></tr></table></body></html>`;
+  };
+
+  const handleEnviarReporte = async () => {
+    setEnviandoReporte(true);
+    setReporteEnviado(false);
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/agente-notificador`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accion: 'reporte_diario' }),
+      });
+      const data = await res.json();
+      if (data.ok) { setReporteEnviado(true); setTimeout(() => setReporteEnviado(false), 5000); }
+    } catch (_) {}
+    setEnviandoReporte(false);
+  };
+
   const inputStyle: React.CSSProperties = {
     width: '100%', background: '#0d1117', border: '1px solid #21262d',
     borderRadius: 6, color: '#e6edf3', padding: '8px 10px', fontSize: 13,
@@ -652,6 +686,16 @@ export default function AgenteTrafico() {
             }}
           >
             📱 Preview WhatsApp
+          </button>
+          <button
+            onClick={() => setVerReporte(true)}
+            style={{
+              background: 'rgba(88,166,255,0.12)', color: '#58a6ff',
+              border: '1px solid #58a6ff44', borderRadius: 8, padding: '10px 18px',
+              fontSize: 13, cursor: 'pointer', fontWeight: 600,
+            }}
+          >
+            📊 Ver Reporte Diario
           </button>
         </div>
 
@@ -1344,6 +1388,62 @@ export default function AgenteTrafico() {
             {/* Footer info */}
             <div style={{ background: '#202c33', padding: '10px 16px', fontSize: 11, color: '#8696a0', textAlign: 'center' }}>
               Este mensaje se enviará a Daniel Benarroch, Asist. Dirección y Asist. Ventas · 8:00 AM diario
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL REPORTE DIARIO */}
+      {verReporte && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.90)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: 16,
+        }} onClick={() => setVerReporte(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#0d1117', borderRadius: 16, width: '100%', maxWidth: 760,
+            maxHeight: '92vh', display: 'flex', flexDirection: 'column',
+            border: '1px solid #30363d', overflow: 'hidden',
+          }}>
+            {/* Header modal */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '14px 20px', borderBottom: '1px solid #21262d',
+              background: '#161b22',
+            }}>
+              <span style={{ fontSize: 18 }}>📊</span>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#e6edf3' }}>Reporte Diario</div>
+                <div style={{ fontSize: 11, color: '#8b949e' }}>Así es como lo recibe el equipo en su correo</div>
+              </div>
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  onClick={handleEnviarReporte}
+                  disabled={enviandoReporte}
+                  style={{
+                    background: reporteEnviado ? 'rgba(63,185,80,0.15)' : 'rgba(88,166,255,0.15)',
+                    color: reporteEnviado ? '#3fb950' : '#58a6ff',
+                    border: `1px solid ${reporteEnviado ? '#3fb95044' : '#58a6ff44'}`,
+                    borderRadius: 8, padding: '8px 16px', fontSize: 13,
+                    fontWeight: 600, cursor: enviandoReporte ? 'not-allowed' : 'pointer',
+                    opacity: enviandoReporte ? 0.7 : 1, transition: 'all 0.2s',
+                  }}
+                >
+                  {enviandoReporte ? '⏳ Enviando…' : reporteEnviado ? '✅ Enviado al equipo' : '✉ Enviar al Equipo'}
+                </button>
+                <button
+                  onClick={() => setVerReporte(false)}
+                  style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: '0 4px' }}
+                >✕</button>
+              </div>
+            </div>
+            {/* Iframe con el HTML del reporte */}
+            <div style={{ flex: 1, overflow: 'hidden', background: '#f0f4f8' }}>
+              <iframe
+                srcDoc={generarHTMLReporte()}
+                style={{ width: '100%', height: '100%', border: 'none', minHeight: 600 }}
+                title="Reporte Diario InfiniteX"
+              />
             </div>
           </div>
         </div>
