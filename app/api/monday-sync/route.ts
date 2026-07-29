@@ -26,6 +26,12 @@ function colText(columnValues: { id: string; text: string | null }[], id: string
   return columnValues.find(c => c.id === id)?.text?.trim() || '';
 }
 
+// Normaliza "2026F| BRI | NOVELTIES  |" -> "2026F | BRI | NOVELTIES" para que el proyecto se vea
+// consistente en el reporte, en vez del campo de texto libre (que a veces trae párrafos largos).
+function limpiarNombre(name: string): string {
+  return name.split('|').map(p => p.trim()).filter(Boolean).join(' | ');
+}
+
 // El nombre del ítem sigue el patrón "AÑO+LETRA | INICIALES | CATEGORIA | EMBARQUE N" que ya usan
 // los BL cargados manualmente (ej. "2025C | MM | ... | EMBARQUE 4" -> "2025C-MM-EMB4"), para que la
 // sincronización reconozca embarques ya existentes en vez de duplicarlos. Si el nombre no sigue ese
@@ -97,7 +103,7 @@ export async function POST(req: NextRequest) {
       const estadoMonday = colText(cv, COL.ESTADO);
 
       const camposMonday = {
-        descripcion: colText(cv, COL.DESCRIPCION) || item.name,
+        descripcion: limpiarNombre(item.name) || colText(cv, COL.DESCRIPCION),
         naviera: colText(cv, COL.NAVIERA),
         origen: colText(cv, COL.ORIGEN),
         etd: colText(cv, COL.ETD) || null,
