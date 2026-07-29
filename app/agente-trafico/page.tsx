@@ -131,7 +131,42 @@ export default function AgenteTrafico() {
   const [analizando, setAnalizando] = useState(false);
   const [resultadoComparativa, setResultadoComparativa] = useState<any>(null);
   const [errorComparativa, setErrorComparativa] = useState('');
+  const [sincronizandoMonday, setSincronizandoMonday] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSincronizarMonday = async () => {
+    setSincronizandoMonday(true);
+    setNotifEstado('enviando');
+    setNotifMsg('Sincronizando embarques desde Monday.com…');
+    try {
+      const res = await fetch('/api/monday-sync', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        setNotifEstado('ok');
+        setNotifMsg(`Monday.com sincronizado: ${data.creados} nuevo(s), ${data.actualizados} actualizado(s) de ${data.total} embarque(s).`);
+        fetch(`${SUPABASE_URL}/rest/v1/trafico_embarques?activo=eq.true&order=created_at.asc`, {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+        })
+          .then(r => r.json())
+          .then(rows => {
+            if (Array.isArray(rows)) {
+              setEmbarques(rows.map((e: any) => ({
+                ...e,
+                documentos: { bl: e.doc_bl, packing_list: e.doc_packing, factura: e.doc_factura, permiso: e.doc_permiso },
+              })));
+            }
+          })
+          .catch(() => {});
+      } else {
+        setNotifEstado('error');
+        setNotifMsg('Error al sincronizar con Monday.com: ' + (data.error || 'desconocido'));
+      }
+    } catch (e) {
+      setNotifEstado('error');
+      setNotifMsg('Error al sincronizar con Monday.com: ' + String(e));
+    }
+    setSincronizandoMonday(false);
+  };
 
   useEffect(() => {
     fetch(`${SUPABASE_URL}/rest/v1/trafico_embarques?activo=eq.true&order=created_at.asc`, {
@@ -902,6 +937,18 @@ export default function AgenteTrafico() {
             }}
           >
             📄 Comparar Cotizaciones
+          </button>
+          <button
+            onClick={handleSincronizarMonday}
+            disabled={sincronizandoMonday}
+            style={{
+              background: 'rgba(0,120,212,0.12)', color: '#0086c9',
+              border: '1px solid #0086c944', borderRadius: 8, padding: '10px 18px',
+              fontSize: 13, cursor: sincronizandoMonday ? 'not-allowed' : 'pointer', fontWeight: 600,
+              opacity: sincronizandoMonday ? 0.6 : 1,
+            }}
+          >
+            {sincronizandoMonday ? '⏳ Sincronizando…' : '🔄 Sincronizar desde Monday'}
           </button>
         </div>
 
