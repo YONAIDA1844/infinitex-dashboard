@@ -671,63 +671,110 @@ export default function AgenteTrafico() {
     const fmtLarga = (d: string|null) => { if(!d) return '-'; const dt=new Date(d+'T12:00:00Z'); return `${dt.getUTCDate()} de ${MESES_L[dt.getUTCMonth()]} de ${dt.getUTCFullYear()}`; };
     const hoy = new Date();
     const fecha = `${hoy.getDate()} de ${MESES_L[hoy.getMonth()]} de ${hoy.getFullYear()}`;
-    const grupoEstado = (estado: string) => { const e=(estado||'').toLowerCase(); if(e.includes('transito')||e.includes('tránsito')||e.includes('embarcado')) return 'transito'; if(e.includes('cotizacion')||e.includes('cotización')) return 'cotizacion'; return 'proceso'; };
-    const esListoDespachar = (estado: string) => (estado||'').toLowerCase().includes('liberado')||(estado||'').toLowerCase().includes('listo');
-    const eStyle = (e: string) => { const ev=(e||'').toLowerCase(); if(ev.includes('transito')||ev.includes('tránsito')) return {bg:'rgba(88,166,255,0.15)',color:'#58a6ff'}; if(ev.includes('cotizaci')) return {bg:'rgba(167,139,250,0.15)',color:'#a78bfa'}; if(ev.includes('liberado')||ev.includes('listo')) return {bg:'rgba(63,185,80,0.15)',color:'#3fb950'}; if(ev.includes('aduana')) return {bg:'rgba(248,81,73,0.15)',color:'#f85149'}; if(ev.includes('disponible')) return {bg:'rgba(0,212,170,0.15)',color:'#00d4aa'}; return {bg:'rgba(139,148,158,0.15)',color:'#8b949e'}; };
+    const hoyISO = hoy.toISOString().slice(0,10);
+
+    // Íconos en línea (SVG) para las tarjetas de estado y acciones recomendadas
+    const icon = (kind: string, color: string, size = 26) => {
+      const c = `width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"`;
+      const s: Record<string,string> = {
+        ship: `<svg ${c}><path d="M4 16L2 11H22L20 16" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16C4 16 6 19 12 19C18 19 20 16 20 16" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 11V3M12 3L16 6M12 3L8 5" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        crane: `<svg ${c}><path d="M5 20V5L15 3V8" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M15 8H20" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/><path d="M19 8V13" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/><path d="M3 20H17" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/><rect x="7" y="13" width="4" height="4" rx="0.6" stroke="${color}" stroke-width="1.6"/></svg>`,
+        building: `<svg ${c}><rect x="4" y="8" width="9" height="12" rx="1" stroke="${color}" stroke-width="1.8"/><rect x="13" y="12" width="7" height="8" rx="1" stroke="${color}" stroke-width="1.8"/><path d="M6.5 11H7.5M6.5 14H7.5M6.5 17H7.5M9.5 11H10.5M9.5 14H10.5M9.5 17H10.5" stroke="${color}" stroke-width="1.4" stroke-linecap="round"/><path d="M15.5 15H16.5M15.5 17H16.5" stroke="${color}" stroke-width="1.4" stroke-linecap="round"/></svg>`,
+        document: `<svg ${c}><path d="M7 3H14L18 7V21H7V3Z" stroke="${color}" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 3V7H18" stroke="${color}" stroke-width="1.8" stroke-linejoin="round"/><path d="M9.5 12H15.5M9.5 15H15.5M9.5 18H13" stroke="${color}" stroke-width="1.5" stroke-linecap="round"/></svg>`,
+        calendarCheck: `<svg ${c}><rect x="3.5" y="5" width="17" height="16" rx="2" stroke="${color}" stroke-width="1.8"/><path d="M3.5 10H20.5" stroke="${color}" stroke-width="1.8"/><path d="M8 3V6.5M16 3V6.5" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/><path d="M8.5 15L11 17.5L16 12.5" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+        calendarSmall: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="5" width="17" height="16" rx="2" stroke="${color}" stroke-width="1.8"/><path d="M3.5 10H20.5" stroke="${color}" stroke-width="1.8"/><path d="M8 3V6.5M16 3V6.5" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+        binoculars: `<svg ${c}><circle cx="7.5" cy="14.5" r="4" stroke="${color}" stroke-width="1.8"/><circle cx="16.5" cy="14.5" r="4" stroke="${color}" stroke-width="1.8"/><path d="M9 8L8 11M15 8L16 11" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/><path d="M11 11H13" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+        megaphone: `<svg ${c}><path d="M3 10V14L14 18V6L3 10Z" stroke="${color}" stroke-width="1.8" stroke-linejoin="round"/><path d="M14 6L20 3V21L14 18" stroke="${color}" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 14V17.5C5 18.6 5.9 19.5 7 19.5C8.1 19.5 9 18.6 9 17.5V15.3" stroke="${color}" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+      };
+      return s[kind] || '';
+    };
+
+    const estadoCorto = (estado: string) => {
+      const s = (estado||'').toLowerCase();
+      if (s.includes('transito')||s.includes('tránsito')) return 'EN TRÁNSITO';
+      if (s.includes('puerto')) return 'EN PUERTO DE ORIGEN';
+      if (s.includes('fábrica')||s.includes('fabrica')) return 'CARGANDO EN FÁBRICA';
+      if (s.includes('cotiz')) return 'EN COTIZACIÓN';
+      if (s.includes('disponible')) return 'DISPONIBLE EN ANKER';
+      if (s.includes('liberado')) return 'LIBERADO';
+      if (s.includes('aduana')) return 'EN ADUANA';
+      if (s.includes('entregado')) return 'ENTREGADO';
+      return (estado||'-').toUpperCase();
+    };
+    const eStyle = (e: string) => { const ev=(e||'').toLowerCase(); if(ev.includes('transito')||ev.includes('tránsito')) return {bg:'rgba(88,166,255,0.15)',color:'#58a6ff'}; if(ev.includes('puerto')) return {bg:'rgba(230,126,34,0.15)',color:'#e67e22'}; if(ev.includes('fábrica')||ev.includes('fabrica')) return {bg:'rgba(58,90,140,0.15)',color:'#3a5a8c'}; if(ev.includes('cotizaci')) return {bg:'rgba(214,51,108,0.15)',color:'#d6336c'}; if(ev.includes('liberado')||ev.includes('listo')) return {bg:'rgba(63,185,80,0.15)',color:'#3fb950'}; if(ev.includes('aduana')) return {bg:'rgba(248,81,73,0.15)',color:'#f85149'}; if(ev.includes('disponible')) return {bg:'rgba(39,174,96,0.15)',color:'#27ae60'}; return {bg:'rgba(139,148,158,0.15)',color:'#8b949e'}; };
     const riesgoColor = (r: string) => { if(r==='ALTO') return {bg:'rgba(248,81,73,0.12)',color:'#f85149',dot:'#f85149'}; if(r==='MEDIO') return {bg:'rgba(210,153,34,0.12)',color:'#d29922',dot:'#f1b000'}; return {bg:'rgba(63,185,80,0.12)',color:'#3fb950',dot:'#3fb950'}; };
-    const transito   = embarques.filter((e: any) => grupoEstado(e.estado)==='transito');
-    const cotizacion = embarques.filter((e: any) => grupoEstado(e.estado)==='cotizacion');
-    const despachar  = embarques.filter((e: any) => esListoDespachar(e.estado));
-    const disponible = embarques.filter((e: any) => (e.estado||'').toLowerCase().includes('disponible'));
+
+    const cambioHoy = (e: any) => !!(e.updated_at && String(e.updated_at).slice(0,10) === hoyISO);
+    const hayCambios = embarques.some(cambioHoy);
+
+    const enTransito      = embarques.filter((e: any) => { const s=(e.estado||'').toLowerCase(); return s.includes('transito')||s.includes('tránsito'); });
+    const enPuertoOrigen  = embarques.filter((e: any) => (e.estado||'').toLowerCase().includes('puerto'));
+    const cargandoFabrica = embarques.filter((e: any) => { const s=(e.estado||'').toLowerCase(); return s.includes('fábrica')||s.includes('fabrica'); });
+    const enCotizacion    = embarques.filter((e: any) => (e.estado||'').toLowerCase().includes('cotiz'));
+    const disponibleAnker = embarques.filter((e: any) => (e.estado||'').toLowerCase().includes('disponible'));
+
+    const calcHito = (e: any) => { const s=(e.estado||'').toLowerCase(); if(s.includes('fábrica')||s.includes('fabrica')||s.includes('cotiz')) return 'Asignado operador'; if(e.llegada_anker) return `Llegada a Anker (${fmt(e.llegada_anker)})`; return '-'; };
+    const enAnkerAhora = (e: any) => !!(e.llegada_anker && e.llegada_anker <= hoyISO);
+
     const proximosAnker = embarques
-      .filter((e: any) => e.llegada_anker && !disponible.includes(e))
-      .sort((a: any,b: any) => a.llegada_anker.localeCompare(b.llegada_anker))
-      .slice(0,4);
-    const acciones: string[] = [];
-    embarques.forEach((e: any) => {
-      if((e.riesgo==='ALTO'||e.riesgo==='MEDIO')&&e.proximo_hito) acciones.push(`Dar seguimiento a ${e.bl}: ${e.proximo_hito}`);
-      if(esListoDespachar(e.estado)) acciones.push(`Confirmar fecha de despacho de ${e.bl} con el proveedor`);
-      if(grupoEstado(e.estado)==='cotizacion') acciones.push(`Avanzar aprobación de cotización: ${e.bl}`);
+      .filter((e: any) => e.llegada_anker)
+      .sort((a: any,b: any) => a.llegada_anker.localeCompare(b.llegada_anker));
+    const proximaCarga = proximosAnker[0];
+
+    const grupoLlegadas: Record<string, any[]> = {};
+    [...enTransito, ...enPuertoOrigen].forEach((e: any) => { if (e.llegada_anker) (grupoLlegadas[e.llegada_anker] ||= []).push(e); });
+    const accionesLista: {icono: string; texto: string}[] = [];
+    Object.keys(grupoLlegadas).sort().slice(0,2).forEach(f => {
+      const items = grupoLlegadas[f];
+      const nombres = items.map((e: any) => e.descripcion||e.bl).join(' y ');
+      accionesLista.push({ icono: 'binoculars', texto: `Dar seguimiento a la llegada de ${nombres} que ${items.length>1?'llegarán':'llegará'} a Anker el ${fmtLarga(f)}.` });
     });
-    const accionesUnicas = [...new Set(acciones)].slice(0,5);
+    enPuertoOrigen.forEach((e: any) => accionesLista.push({ icono: 'building', texto: `Confirmar con el proveedor el estado de ${e.descripcion||e.bl} en puerto de origen.` }));
+    cargandoFabrica.forEach((e: any) => accionesLista.push({ icono: 'building', texto: `Dar seguimiento al avance de carga de ${e.descripcion||e.bl} para confirmar ETA.` }));
+    if (enTransito.length) accionesLista.push({ icono: 'document', texto: 'Revisar documentación pendiente (BL, factura, packing list, etc.) de las cargas en tránsito.' });
+    const accionesFinal = accionesLista.slice(0,6);
+
     const filasTabla = embarques.map((e: any) => {
-      const es=eStyle(e.estado), r=riesgoColor(e.riesgo||'BAJO');
-      return `<tr style="border-bottom:1px solid #e8edf2;"><td style="padding:10px 12px;font-size:12px;color:#1a2332;font-weight:600;">${e.bl||'-'}</td><td style="padding:10px 12px;"><span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${es.bg};color:${es.color};white-space:nowrap;">${e.estado||'-'}</span></td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.etd)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.eta)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.llegada_real)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.llegada_anker)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${e.fecha_disponible?fmt(e.fecha_disponible):'-'}</td><td style="padding:10px 12px;font-size:12px;color:#2d3748;">${e.proximo_hito||'-'}</td><td style="padding:10px 12px;text-align:center;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${r.bg};color:${r.color};"><span style="width:7px;height:7px;border-radius:50%;background:${r.dot};display:inline-block;"></span>${e.riesgo||'BAJO'}</span></td></tr>`;
+      const es=eStyle(e.estado), r=riesgoColor(e.riesgo||'BAJO'), cambio=cambioHoy(e);
+      return `<tr style="border-bottom:1px solid #e8edf2;"><td style="padding:10px 12px;font-size:12px;color:#1a2332;font-weight:600;">${e.descripcion||e.bl||'-'}</td><td style="padding:10px 12px;"><span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${es.bg};color:${es.color};white-space:nowrap;">${estadoCorto(e.estado)}</span></td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.etd)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.eta)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.llegada_real)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.llegada_anker)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${enAnkerAhora(e)?'Sí':'-'}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.fecha_disponible)}</td><td style="padding:10px 12px;font-size:12px;color:#2d3748;">${calcHito(e)}</td><td style="padding:10px 12px;text-align:center;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${r.bg};color:${r.color};"><span style="width:7px;height:7px;border-radius:50%;background:${r.dot};display:inline-block;"></span>${e.riesgo||'BAJO'}</span></td><td style="padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:${cambio?'#d29922':'#3fb950'};">${cambio?'● CAMBIO':'✓ SIN CAMBIOS'}</td></tr>`;
     }).join('');
     const tarjetasProximos = proximosAnker.map((e: any) => {
       const dt=new Date(e.llegada_anker+'T12:00:00Z');
-      return `<div style="background:#fff;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #3498db;box-shadow:0 1px 4px rgba(0,0,0,0.06);"><div style="font-size:11px;font-weight:800;color:#3498db;">${String(dt.getUTCDate()).padStart(2,'0')} ${MESES_L[dt.getUTCMonth()].substring(0,3).toUpperCase()}</div><div style="font-size:12px;font-weight:700;color:#1a2332;margin-top:3px;">${e.bl}</div><div style="font-size:11px;color:#718096;margin-top:2px;">Llegada Anker: ${fmtLarga(e.llegada_anker)}</div></div>`;
+      return `<div style="background:#fff;border-radius:8px;padding:12px 14px;margin-bottom:10px;border-left:3px solid #3498db;box-shadow:0 1px 4px rgba(0,0,0,0.06);display:flex;align-items:center;gap:12px;"><div style="background:#e8f4fd;border-radius:6px;padding:6px 10px;text-align:center;flex-shrink:0;"><div style="font-size:15px;font-weight:800;color:#3498db;line-height:1;">${String(dt.getUTCDate()).padStart(2,'0')}</div><div style="font-size:9px;font-weight:700;color:#3498db;text-transform:uppercase;">${MESES_L[dt.getUTCMonth()].substring(0,3)}</div></div><div><div style="font-size:12px;font-weight:700;color:#1a2332;">${e.descripcion||e.bl}</div><div style="font-size:11px;color:#718096;margin-top:2px;">Llegada Anker: ${fmtLarga(e.llegada_anker)}</div></div></div>`;
     }).join('') || '<div style="color:#a0aec0;font-size:12px;padding:10px;">Sin próximas llegadas registradas</div>';
-    const tarjetasAcciones = accionesUnicas.map(a =>
-      `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #e8edf2;"><div style="width:20px;height:20px;border-radius:4px;background:#e8f5e9;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;"><span style="color:#3fb950;font-size:12px;">&#10003;</span></div><div style="font-size:12px;color:#2d3748;line-height:1.5;">${a}</div></div>`
+    const tarjetasAcciones = accionesFinal.map(a =>
+      `<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid #e8edf2;"><div style="flex-shrink:0;margin-top:1px;">${icon(a.icono,'#3498db',18)}</div><div style="font-size:12px;color:#2d3748;line-height:1.5;">${a.texto}</div></div>`
     ).join('') || '<div style="color:#a0aec0;font-size:12px;padding:10px;">Sin acciones pendientes</div>';
 
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f8;padding:20px 10px;"><tr><td align="center">
-<table width="700" cellpadding="0" cellspacing="0" style="max-width:700px;width:100%;">
-<tr><td style="background:linear-gradient(135deg,#1a2332 0%,#2d4a6e 100%);border-radius:12px 12px 0 0;padding:28px 32px;">
+<table width="760" cellpadding="0" cellspacing="0" style="max-width:760px;width:100%;">
+<tr><td style="background:#ffffff;border-radius:12px 12px 0 0;padding:24px 32px;border-bottom:3px solid #1a2332;">
   <table width="100%" cellpadding="0" cellspacing="0"><tr>
-    <td><div style="font-size:11px;color:#7fb3d3;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;">InfiniteX · Sicoben Ediciones</div>
-      <div style="font-size:24px;font-weight:800;color:#fff;letter-spacing:1px;">SEGUIMIENTO DIARIO DE IMPORTACIONES</div>
-      <div style="font-size:14px;color:#58a6ff;font-weight:600;margin-top:4px;">TRÁFICO 2026</div></td>
-    <td align="right"><div style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 16px;text-align:center;">
-      <div style="font-size:10px;color:#7fb3d3;letter-spacing:2px;">FECHA DEL REPORTE</div>
-      <div style="font-size:13px;font-weight:700;color:#fff;margin-top:2px;">${fecha}</div>
-    </div></td>
+    <td valign="top"><div style="font-size:26px;font-weight:800;color:#1a2332;letter-spacing:0.5px;">SEGUIMIENTO DIARIO DE IMPORTACIONES</div>
+      <div style="font-size:15px;font-weight:700;color:#27ae60;margin-top:4px;">TRÁFICO 2026</div></td>
+    <td align="right" valign="top">
+      <table cellpadding="0" cellspacing="0" style="display:inline-table;background:#eef3f8;border:1px solid #d7e3ee;border-radius:8px;"><tr>
+        <td style="padding:8px 10px 8px 12px;">${icon('calendarSmall','#1a2332',18)}</td>
+        <td style="padding:8px 14px 8px 4px;text-align:left;"><div style="font-size:9px;color:#718096;letter-spacing:1px;font-weight:700;">FECHA DEL REPORTE</div><div style="font-size:12px;font-weight:800;color:#1a2332;">${fecha.toUpperCase()}</div></td>
+      </tr></table>
+      <div style="margin-top:8px;"><span style="display:inline-block;background:${hayCambios?'#fff7e6':'#e8f8ee'};border:1px solid ${hayCambios?'#f1b000':'#3fb950'};border-radius:6px;padding:6px 12px;font-size:11px;font-weight:800;color:${hayCambios?'#d29922':'#27ae60'};">${hayCambios?'⚠ CAMBIOS DETECTADOS HOY':'✓ SIN CAMBIOS RESPECTO AL DÍA ANTERIOR'}</span></div>
+    </td>
   </tr></table>
 </td></tr>
 <tr><td style="background:#fff;padding:20px 32px;border-bottom:2px solid #e8edf2;">
   <table width="100%" cellpadding="0" cellspacing="0"><tr>
-    <td style="width:25%;text-align:center;padding:0 8px;"><div style="background:#e8f4fd;border-radius:10px;padding:16px 8px;"><div style="font-size:32px;font-weight:800;color:#3498db;">${transito.length}</div><div style="font-size:10px;color:#718096;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:4px;">En Tránsito</div></div></td>
-    <td style="width:25%;text-align:center;padding:0 8px;"><div style="background:#e8fdf0;border-radius:10px;padding:16px 8px;"><div style="font-size:32px;font-weight:800;color:#27ae60;">${despachar.length}</div><div style="font-size:10px;color:#718096;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:4px;">Listo Despachar</div></div></td>
-    <td style="width:25%;text-align:center;padding:0 8px;"><div style="background:#f3e8fd;border-radius:10px;padding:16px 8px;"><div style="font-size:32px;font-weight:800;color:#8e44ad;">${cotizacion.length}</div><div style="font-size:10px;color:#718096;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:4px;">En Cotización</div></div></td>
-    <td style="width:25%;text-align:center;padding:0 8px;"><div style="background:#e8fdf8;border-radius:10px;padding:16px 8px;"><div style="font-size:32px;font-weight:800;color:#00d4aa;">${disponible.length}</div><div style="font-size:10px;color:#718096;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:4px;">Disponible Anker</div></div></td>
+    <td style="width:20%;text-align:center;padding:0 6px;"><div style="background:#e8f4fd;border-radius:10px;padding:14px 6px;">${icon('ship','#3498db',28)}<div style="font-size:24px;font-weight:800;color:#3498db;margin-top:4px;">${enTransito.length}</div><div style="font-size:9px;color:#718096;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-top:2px;">En Tránsito</div></div></td>
+    <td style="width:20%;text-align:center;padding:0 6px;"><div style="background:#fef3e6;border-radius:10px;padding:14px 6px;">${icon('crane','#e67e22',28)}<div style="font-size:24px;font-weight:800;color:#e67e22;margin-top:4px;">${enPuertoOrigen.length}</div><div style="font-size:9px;color:#718096;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-top:2px;">En Puerto de Origen</div></div></td>
+    <td style="width:20%;text-align:center;padding:0 6px;"><div style="background:#eaf1fb;border-radius:10px;padding:14px 6px;">${icon('building','#3a5a8c',28)}<div style="font-size:24px;font-weight:800;color:#3a5a8c;margin-top:4px;">${cargandoFabrica.length}</div><div style="font-size:9px;color:#718096;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-top:2px;">Cargando en Fábrica</div></div></td>
+    <td style="width:20%;text-align:center;padding:0 6px;"><div style="background:#fce8f3;border-radius:10px;padding:14px 6px;">${icon('document','#d6336c',28)}<div style="font-size:24px;font-weight:800;color:#d6336c;margin-top:4px;">${enCotizacion.length}</div><div style="font-size:9px;color:#718096;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-top:2px;">En Cotización</div></div></td>
+    <td style="width:20%;text-align:center;padding:0 6px;"><div style="background:#e8fdf2;border-radius:10px;padding:14px 6px;">${icon('calendarCheck','#27ae60',28)}<div style="font-size:24px;font-weight:800;color:#27ae60;margin-top:4px;">${disponibleAnker.length}</div><div style="font-size:9px;color:#718096;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;margin-top:2px;">Disponible en Anker</div></div></td>
   </tr></table>
 </td></tr>
 <tr><td style="background:#fff;padding:0;">
   <div style="padding:20px 32px 10px;"><div style="font-size:11px;font-weight:700;color:#3498db;letter-spacing:2px;text-transform:uppercase;">DETALLE DE EMBARQUES</div></div>
-  <div style="overflow-x:auto;"><table width="100%" cellpadding="0" cellspacing="0" style="min-width:650px;">
+  <div style="overflow-x:auto;"><table width="100%" cellpadding="0" cellspacing="0" style="min-width:820px;">
     <thead><tr style="background:#f7f9fc;border-bottom:2px solid #e8edf2;">
       <th style="padding:10px 12px;text-align:left;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">PROYECTO</th>
       <th style="padding:10px 12px;text-align:left;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">ESTADO</th>
@@ -735,32 +782,43 @@ export default function AgenteTrafico() {
       <th style="padding:10px 12px;text-align:center;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">ETA</th>
       <th style="padding:10px 12px;text-align:center;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">LLEGÓ</th>
       <th style="padding:10px 12px;text-align:center;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">LLEGADA ANKER</th>
-      <th style="padding:10px 12px;text-align:center;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">DISP. ANKER</th>
+      <th style="padding:10px 12px;text-align:center;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">EN ANKER</th>
+      <th style="padding:10px 12px;text-align:center;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">DISPONIBLE ANKER</th>
       <th style="padding:10px 12px;text-align:left;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">PRÓXIMO HITO</th>
       <th style="padding:10px 12px;text-align:center;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">RIESGO</th>
+      <th style="padding:10px 12px;text-align:center;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">CAMBIO VS DÍA ANTERIOR</th>
     </tr></thead>
     <tbody>${filasTabla}</tbody>
   </table></div>
 </td></tr>
 <tr><td style="background:#f7f9fc;padding:20px 32px;border-top:2px solid #e8edf2;">
   <table width="100%" cellpadding="0" cellspacing="0"><tr valign="top">
-    <td style="width:30%;padding-right:16px;">
+    <td style="width:28%;padding-right:14px;">
       <div style="font-size:11px;font-weight:700;color:#2d3748;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">RESUMEN GENERAL</div>
       <div style="background:#fff;border-radius:8px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
-        <div style="font-size:12px;color:#4a5568;margin-bottom:8px;"><span style="color:#3498db;">&#9679;</span> ${transito.length} embarque(s) en tránsito</div>
-        <div style="font-size:12px;color:#4a5568;margin-bottom:8px;"><span style="color:#27ae60;">&#9679;</span> ${despachar.length} embarque(s) listo(s) para despachar</div>
-        <div style="font-size:12px;color:#4a5568;margin-bottom:8px;"><span style="color:#8e44ad;">&#9679;</span> ${cotizacion.length} embarque(s) en cotización</div>
-        <div style="font-size:12px;color:#4a5568;"><span style="color:#00d4aa;">&#9679;</span> ${disponible.length} embarque(s) disponibles en Anker</div>
+        <div style="font-size:12px;color:#4a5568;margin-bottom:8px;"><span style="color:#3498db;">&#9679;</span> ${enTransito.length} embarque(s) en tránsito.</div>
+        <div style="font-size:12px;color:#4a5568;margin-bottom:8px;"><span style="color:#e67e22;">&#9679;</span> ${enPuertoOrigen.length} embarque(s) en puerto de origen.</div>
+        <div style="font-size:12px;color:#4a5568;margin-bottom:8px;"><span style="color:#3a5a8c;">&#9679;</span> ${cargandoFabrica.length} embarque(s) cargando en fábrica.</div>
+        <div style="font-size:12px;color:#4a5568;margin-bottom:8px;"><span style="color:#d6336c;">&#9679;</span> ${enCotizacion.length} embarque(s) en cotización.</div>
+        <div style="font-size:12px;color:#4a5568;"><span style="color:#27ae60;">&#9679;</span> ${disponibleAnker.length} embarque(s) disponible(s) en Anker.</div>
       </div>
+      ${proximaCarga ? `<div style="background:#eef3fb;border-radius:8px;padding:12px 14px;margin-top:12px;font-size:11px;color:#2d3748;line-height:1.5;"><strong>La carga más próxima a llegar a Anker es:</strong><br/>${proximaCarga.descripcion||proximaCarga.bl}<br/>Fecha estimada de llegada: ${fmtLarga(proximaCarga.llegada_anker)}</div>` : ''}
     </td>
-    <td style="width:35%;padding:0 8px;">
+    <td style="width:36%;padding:0 8px;">
       <div style="font-size:11px;font-weight:700;color:#2d3748;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">PRÓXIMAS LLEGADAS A ANKER</div>
       ${tarjetasProximos}
     </td>
-    <td style="width:35%;padding-left:16px;">
+    <td style="width:36%;padding-left:16px;">
       <div style="font-size:11px;font-weight:700;color:#2d3748;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">ACCIONES RECOMENDADAS PARA HOY</div>
       <div style="background:#fff;border-radius:8px;padding:10px 14px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">${tarjetasAcciones}</div>
     </td>
+  </tr></table>
+</td></tr>
+<tr><td style="background:#f0f4f8;padding:14px 32px;">
+  <table width="100%" cellpadding="0" cellspacing="0"><tr>
+    <td style="width:24px;">${icon('megaphone','#4a5568',20)}</td>
+    <td style="font-size:11px;color:#4a5568;padding-left:8px;">NOTA: Este seguimiento se actualizará diariamente con la información más reciente de estatus y cambios en las fechas.</td>
+    <td align="right" style="font-size:11px;color:#4a5568;white-space:nowrap;padding-left:12px;">${hayCambios?'Hoy hay cambios respecto al día anterior.':'Hoy no hay cambios respecto al día anterior.'}</td>
   </tr></table>
 </td></tr>
 <tr><td style="background:#1a2332;border-radius:0 0 12px 12px;padding:16px 32px;">

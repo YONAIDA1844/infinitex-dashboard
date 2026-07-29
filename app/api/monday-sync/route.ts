@@ -12,6 +12,7 @@ const COL = {
   ETD: 'date',
   ETA: 'fecha',
   LLEGADA_ANKER: 'fecha9',
+  DISPONIBLE_ANKER: 'date_mkzck0x5',
 };
 
 // Traduce el "Estado" de Monday a los valores que ya usa InfiniteX. Lo no reconocido se pasa tal cual.
@@ -102,6 +103,7 @@ export async function POST(req: NextRequest) {
         etd: colText(cv, COL.ETD) || null,
         eta: colText(cv, COL.ETA) || null,
         llegada_anker: colText(cv, COL.LLEGADA_ANKER) || null,
+        fecha_disponible: colText(cv, COL.DISPONIBLE_ANKER) || null,
         ...(estadoMonday ? { estado: ESTADO_MONDAY_A_INFINITEX[estadoMonday] || estadoMonday } : {}),
       };
 
