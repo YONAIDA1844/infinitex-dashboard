@@ -673,20 +673,14 @@ export default function AgenteTrafico() {
     const fecha = `${hoy.getDate()} de ${MESES_L[hoy.getMonth()]} de ${hoy.getFullYear()}`;
     const hoyISO = hoy.toISOString().slice(0,10);
 
-    // Íconos en línea (SVG, rellenos sólidos) para las tarjetas de estado y acciones recomendadas
-    const icon = (kind: string, color: string, size = 26) => {
-      const c = `width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"`;
-      const s: Record<string,string> = {
-        ship: `<svg ${c}><path d="M3 15.5L1.5 11H22.5L21 15.5C21 15.5 17.5 19 12 19C6.5 19 3 15.5 3 15.5Z" fill="${color}"/><rect x="11" y="3.5" width="2" height="8" rx="1" fill="${color}"/><path d="M13 4L17.5 6.8L13 9V4Z" fill="${color}"/></svg>`,
-        crane: `<svg ${c}><rect x="4.5" y="3" width="2.6" height="18" rx="1" fill="${color}"/><rect x="4.5" y="3" width="16" height="2.6" rx="1" fill="${color}"/><rect x="17.5" y="5.6" width="2.6" height="8" rx="1" fill="${color}"/><rect x="3" y="20.2" width="15" height="2.2" rx="1" fill="${color}"/><rect x="8" y="14.5" width="4.5" height="4.5" rx="1" fill="${color}" opacity="0.55"/></svg>`,
-        building: `<svg ${c}><rect x="3.5" y="9" width="9.5" height="12.5" rx="1.2" fill="${color}"/><rect x="13" y="12.5" width="7.5" height="9" rx="1.2" fill="${color}" opacity="0.6"/><rect x="6" y="11.5" width="1.8" height="1.8" rx="0.3" fill="#fff"/><rect x="9.5" y="11.5" width="1.8" height="1.8" rx="0.3" fill="#fff"/><rect x="6" y="15.5" width="1.8" height="1.8" rx="0.3" fill="#fff"/><rect x="9.5" y="15.5" width="1.8" height="1.8" rx="0.3" fill="#fff"/><rect x="15.3" y="15.5" width="1.8" height="1.8" rx="0.3" fill="#fff"/><rect x="15.3" y="18.5" width="1.8" height="1.8" rx="0.3" fill="#fff"/></svg>`,
-        document: `<svg ${c}><path d="M5.5 3H14.5L18.5 7V21H5.5V3Z" fill="${color}"/><path d="M14.5 3L18.5 7H14.5V3Z" fill="#fff" opacity="0.4"/><rect x="8" y="11" width="8" height="1.6" rx="0.8" fill="#fff"/><rect x="8" y="14.5" width="8" height="1.6" rx="0.8" fill="#fff"/><rect x="8" y="18" width="5" height="1.6" rx="0.8" fill="#fff"/></svg>`,
-        calendarCheck: `<svg ${c}><rect x="3" y="4" width="18" height="17" rx="3" fill="${color}"/><rect x="3" y="8.5" width="18" height="1.6" fill="#ffffff" opacity="0.5"/><circle cx="7.5" cy="4" r="1.3" fill="${color}"/><circle cx="16.5" cy="4" r="1.3" fill="${color}"/><path d="M7.5 14.2L10.3 17L16.8 10.3" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>`,
-        calendarSmall: `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="3" fill="${color}"/><rect x="3" y="8.5" width="18" height="1.6" fill="#ffffff" opacity="0.5"/><circle cx="7.5" cy="4" r="1.3" fill="${color}"/><circle cx="16.5" cy="4" r="1.3" fill="${color}"/></svg>`,
-        binoculars: `<svg ${c}><circle cx="7.5" cy="14" r="4.3" fill="${color}"/><circle cx="16.5" cy="14" r="4.3" fill="${color}"/><rect x="10.3" y="12.3" width="3.4" height="3.4" rx="1" fill="${color}"/><path d="M9 7.5L7.8 11M15 7.5L16.2 11" stroke="${color}" stroke-width="2" stroke-linecap="round"/></svg>`,
-        megaphone: `<svg ${c}><path d="M2.5 9.3V14.7L13 18.5V5.5L2.5 9.3Z" fill="${color}"/><path d="M13 5.5L20.5 2V22L13 18.5V5.5Z" fill="${color}" opacity="0.6"/><path d="M4.8 14.8V18C4.8 19.1 5.7 20 6.8 20C7.9 20 8.8 19.1 8.8 18V16" stroke="${color}" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>`,
+    // Emojis (ya diseñados profesionalmente, se ven bien en cualquier navegador) en vez de SVG
+    // dibujado a mano, que no se leía con claridad como barco/grúa/etc.
+    const icon = (kind: string, _color: string, size = 26) => {
+      const emoji: Record<string,string> = {
+        ship: '🚢', crane: '🏗️', building: '🏭', document: '📄',
+        calendarCheck: '📅', calendarSmall: '📅', binoculars: '🔭', megaphone: '📣',
       };
-      return s[kind] || '';
+      return `<span style="font-size:${size}px;line-height:1;display:inline-block;">${emoji[kind] || ''}</span>`;
     };
 
     const estadoCorto = (estado: string) => {
@@ -749,7 +743,7 @@ export default function AgenteTrafico() {
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f8;padding:20px 10px;"><tr><td align="center">
-<table width="760" cellpadding="0" cellspacing="0" style="max-width:760px;width:100%;">
+<table width="1000" cellpadding="0" cellspacing="0" style="max-width:1000px;width:100%;">
 <tr><td style="background:#ffffff;border-radius:12px 12px 0 0;padding:24px 32px;border-bottom:3px solid #1a2332;">
   <table width="100%" cellpadding="0" cellspacing="0"><tr>
     <td valign="top"><div style="font-size:26px;font-weight:800;color:#1a2332;letter-spacing:0.5px;">SEGUIMIENTO DIARIO DE IMPORTACIONES</div>
@@ -2204,7 +2198,7 @@ export default function AgenteTrafico() {
           zIndex: 9999, padding: 16,
         }} onClick={() => setVerReporte(false)}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: '#0d1117', borderRadius: 16, width: '100%', maxWidth: 760,
+            background: '#0d1117', borderRadius: 16, width: '100%', maxWidth: 1080,
             maxHeight: '92vh', display: 'flex', flexDirection: 'column',
             border: '1px solid #30363d', overflow: 'hidden',
           }}>
