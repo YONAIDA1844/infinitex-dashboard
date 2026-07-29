@@ -53,17 +53,17 @@ function formatFechaWA(dateStr: string | null): string {
 function abrevBLWA(bl: string): string { const p = bl.split('-'); return p.length >= 2 ? p[1] : bl; }
 function numEmbWA(bl: string): string { const p = bl.split('-'); return `Emb. ${p[p.length-1].replace('EMB','')}`;  }
 function descCortaWA(d: string): string { return d.replace(/\s*-\s*Embarque\s*\d+\s*$/i,'').trim(); }
-function grupoWA(estado: string, notas: string): 'transito'|'proceso'|'cotizacion' {
-  const e = (estado||'').toLowerCase(), n = (notas||'').toLowerCase();
+function grupoWA(estado: string): 'transito'|'proceso'|'cotizacion' {
+  const e = (estado||'').toLowerCase();
   if (e.includes('transito')||e.includes('tránsito')||e.includes('embarcado')) return 'transito';
-  if (n.includes('cotizacion')||n.includes('cotización')||e.includes('cotizacion')) return 'cotizacion';
+  if (e.includes('cotizacion')||e.includes('cotización')) return 'cotizacion';
   return 'proceso';
 }
 function generarTextoWA(embarques: any[]): string {
   const hoy = new Date();
   const fecha = `${hoy.getDate()}/${MESES_WA[hoy.getMonth()]}/${hoy.getFullYear()}`;
   const grupos: Record<string,any[]> = { transito:[], proceso:[], cotizacion:[] };
-  embarques.forEach(e => grupos[grupoWA(e.estado, e.notas)].push(e));
+  embarques.forEach(e => grupos[grupoWA(e.estado)].push(e));
   let idx = 0;
   const lineas: string[] = [`📦 SEGUIMIENTO – TRÁFICO 2026 (${fecha})`, ''];
   const render = (titulo: string, items: any[]) => {
@@ -671,12 +671,12 @@ export default function AgenteTrafico() {
     const fmtLarga = (d: string|null) => { if(!d) return '-'; const dt=new Date(d+'T12:00:00Z'); return `${dt.getUTCDate()} de ${MESES_L[dt.getUTCMonth()]} de ${dt.getUTCFullYear()}`; };
     const hoy = new Date();
     const fecha = `${hoy.getDate()} de ${MESES_L[hoy.getMonth()]} de ${hoy.getFullYear()}`;
-    const grupoEstado = (estado: string, notas: string) => { const e=(estado||'').toLowerCase(),n=(notas||'').toLowerCase(); if(e.includes('transito')||e.includes('tránsito')||e.includes('embarcado')) return 'transito'; if(n.includes('cotizacion')||n.includes('cotización')||e.includes('cotizacion')||e.includes('cotización')) return 'cotizacion'; return 'proceso'; };
+    const grupoEstado = (estado: string) => { const e=(estado||'').toLowerCase(); if(e.includes('transito')||e.includes('tránsito')||e.includes('embarcado')) return 'transito'; if(e.includes('cotizacion')||e.includes('cotización')) return 'cotizacion'; return 'proceso'; };
     const esListoDespachar = (estado: string) => (estado||'').toLowerCase().includes('liberado')||(estado||'').toLowerCase().includes('listo');
     const eStyle = (e: string) => { const ev=(e||'').toLowerCase(); if(ev.includes('transito')||ev.includes('tránsito')) return {bg:'rgba(88,166,255,0.15)',color:'#58a6ff'}; if(ev.includes('cotizaci')) return {bg:'rgba(167,139,250,0.15)',color:'#a78bfa'}; if(ev.includes('liberado')||ev.includes('listo')) return {bg:'rgba(63,185,80,0.15)',color:'#3fb950'}; if(ev.includes('aduana')) return {bg:'rgba(248,81,73,0.15)',color:'#f85149'}; if(ev.includes('disponible')) return {bg:'rgba(0,212,170,0.15)',color:'#00d4aa'}; return {bg:'rgba(139,148,158,0.15)',color:'#8b949e'}; };
     const riesgoColor = (r: string) => { if(r==='ALTO') return {bg:'rgba(248,81,73,0.12)',color:'#f85149',dot:'#f85149'}; if(r==='MEDIO') return {bg:'rgba(210,153,34,0.12)',color:'#d29922',dot:'#f1b000'}; return {bg:'rgba(63,185,80,0.12)',color:'#3fb950',dot:'#3fb950'}; };
-    const transito   = embarques.filter((e: any) => grupoEstado(e.estado,e.notas)==='transito');
-    const cotizacion = embarques.filter((e: any) => grupoEstado(e.estado,e.notas)==='cotizacion');
+    const transito   = embarques.filter((e: any) => grupoEstado(e.estado)==='transito');
+    const cotizacion = embarques.filter((e: any) => grupoEstado(e.estado)==='cotizacion');
     const despachar  = embarques.filter((e: any) => esListoDespachar(e.estado));
     const disponible = embarques.filter((e: any) => (e.estado||'').toLowerCase().includes('disponible'));
     const proximosAnker = embarques
@@ -687,7 +687,7 @@ export default function AgenteTrafico() {
     embarques.forEach((e: any) => {
       if((e.riesgo==='ALTO'||e.riesgo==='MEDIO')&&e.proximo_hito) acciones.push(`Dar seguimiento a ${e.bl}: ${e.proximo_hito}`);
       if(esListoDespachar(e.estado)) acciones.push(`Confirmar fecha de despacho de ${e.bl} con el proveedor`);
-      if(grupoEstado(e.estado,e.notas)==='cotizacion') acciones.push(`Avanzar aprobación de cotización: ${e.bl}`);
+      if(grupoEstado(e.estado)==='cotizacion') acciones.push(`Avanzar aprobación de cotización: ${e.bl}`);
     });
     const accionesUnicas = [...new Set(acciones)].slice(0,5);
     const filasTabla = embarques.map((e: any) => {
