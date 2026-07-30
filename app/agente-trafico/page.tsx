@@ -133,6 +133,25 @@ export default function AgenteTrafico() {
   const [errorComparativa, setErrorComparativa] = useState('');
   const [sincronizandoMonday, setSincronizandoMonday] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const reporteIframeRef = useRef<HTMLIFrameElement>(null);
+  const [descargandoReporteImg, setDescargandoReporteImg] = useState(false);
+
+  const handleDescargarReporteImagen = async () => {
+    const doc = reporteIframeRef.current?.contentDocument;
+    const body = doc?.body;
+    if (!body) return;
+    setDescargandoReporteImg(true);
+    try {
+      const { default: html2canvas } = await import('html2canvas');
+      const canvas = await html2canvas(body, { scale: 2, backgroundColor: '#f0f4f8', useCORS: true, windowWidth: body.scrollWidth, windowHeight: body.scrollHeight });
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `InfiniteX_Reporte_Diario_${new Date().toISOString().slice(0,10)}.png`;
+      a.click();
+    } catch (_) {}
+    setDescargandoReporteImg(false);
+  };
 
   const handleSincronizarMonday = async () => {
     setSincronizandoMonday(true);
@@ -663,8 +682,8 @@ export default function AgenteTrafico() {
   const generarHTMLReporte = () => {
     const MESES_L = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     const MESES_C = ['ene.','feb.','mar.','abr.','may.','jun.','jul.','ago.','sep.','oct.','nov.','dic.'];
-    const fmt = (d: string|null) => { if(!d) return '-'; const dt=new Date(d+'T12:00:00Z'); return MESES_C[dt.getUTCMonth()]+' '+dt.getUTCDate(); };
-    const fmtLarga = (d: string|null) => { if(!d) return '-'; const dt=new Date(d+'T12:00:00Z'); return `${dt.getUTCDate()} de ${MESES_L[dt.getUTCMonth()]} de ${dt.getUTCFullYear()}`; };
+    const fmt = (d: string|null) => { if(!d) return '-'; const dt=d.includes('T')?new Date(d):new Date(d+'T12:00:00Z'); if(isNaN(dt.getTime())) return '-'; return MESES_C[dt.getUTCMonth()]+' '+dt.getUTCDate(); };
+    const fmtLarga = (d: string|null) => { if(!d) return '-'; const dt=d.includes('T')?new Date(d):new Date(d+'T12:00:00Z'); if(isNaN(dt.getTime())) return '-'; return `${dt.getUTCDate()} de ${MESES_L[dt.getUTCMonth()]} de ${dt.getUTCFullYear()}`; };
     const hoy = new Date();
     const fecha = `${hoy.getDate()} de ${MESES_L[hoy.getMonth()]} de ${hoy.getFullYear()}`;
     const hoyISO = hoy.toISOString().slice(0,10);
@@ -726,7 +745,7 @@ export default function AgenteTrafico() {
 
     const filasTabla = embarques.map((e: any) => {
       const es=eStyle(e.estado), r=riesgoColor(e.riesgo||'BAJO'), cambio=cambioHoy(e);
-      return `<tr style="border-bottom:1px solid #e8edf2;"><td style="padding:10px 12px;font-size:12px;color:#1a2332;font-weight:600;">${e.descripcion||e.bl||'-'}</td><td style="padding:10px 12px;"><span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${es.bg};color:${es.color};white-space:nowrap;">${estadoCorto(e.estado)}</span></td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.etd)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.eta)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.llegada_real)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.llegada_anker)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${enAnkerAhora(e)?'Sí':'-'}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;">${fmt(e.fecha_disponible)}</td><td style="padding:10px 12px;font-size:12px;color:#2d3748;">${calcHito(e)}</td><td style="padding:10px 12px;text-align:center;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${r.bg};color:${r.color};"><span style="width:7px;height:7px;border-radius:50%;background:${r.dot};display:inline-block;"></span>${e.riesgo||'BAJO'}</span></td><td style="padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:${cambio?'#d29922':'#3fb950'};">${cambio?'● CAMBIO':'✓ SIN CAMBIOS'}</td></tr>`;
+      return `<tr style="border-bottom:1px solid #e8edf2;"><td style="padding:10px 12px;font-size:12px;color:#1a2332;font-weight:600;white-space:nowrap;">${e.descripcion||e.bl||'-'}</td><td style="padding:10px 12px;white-space:nowrap;"><span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${es.bg};color:${es.color};white-space:nowrap;">${estadoCorto(e.estado)}</span></td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;white-space:nowrap;">${fmt(e.etd)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;white-space:nowrap;">${fmt(e.eta)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;white-space:nowrap;">${fmt(e.llegada_real)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;white-space:nowrap;">${fmt(e.llegada_anker)}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;white-space:nowrap;">${enAnkerAhora(e)?'Sí':'-'}</td><td style="padding:10px 12px;font-size:12px;color:#4a5568;text-align:center;white-space:nowrap;">${fmt(e.fecha_disponible)}</td><td style="padding:10px 12px;font-size:12px;color:#2d3748;white-space:nowrap;">${calcHito(e)}</td><td style="padding:10px 12px;text-align:center;white-space:nowrap;"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;background:${r.bg};color:${r.color};"><span style="width:7px;height:7px;border-radius:50%;background:${r.dot};display:inline-block;"></span>${e.riesgo||'BAJO'}</span></td><td style="padding:10px 12px;text-align:center;font-size:11px;font-weight:700;color:${cambio?'#d29922':'#3fb950'};white-space:nowrap;">${cambio?'● CAMBIO':'✓ SIN CAMBIOS'}</td></tr>`;
     }).join('');
     const tarjetasProximos = proximosAnker.map((e: any) => {
       const dt=new Date(e.llegada_anker+'T12:00:00Z');
@@ -739,7 +758,7 @@ export default function AgenteTrafico() {
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f8;padding:20px 10px;"><tr><td align="center">
-<table width="1000" cellpadding="0" cellspacing="0" style="max-width:1000px;width:100%;">
+<table width="1150" cellpadding="0" cellspacing="0" style="max-width:1150px;width:100%;">
 <tr><td style="background:#ffffff;border-radius:12px 12px 0 0;padding:24px 32px;border-bottom:3px solid #1a2332;">
   <table width="100%" cellpadding="0" cellspacing="0"><tr>
     <td valign="top"><div style="font-size:26px;font-weight:800;color:#1a2332;letter-spacing:0.5px;">SEGUIMIENTO DIARIO DE IMPORTACIONES</div>
@@ -764,7 +783,7 @@ export default function AgenteTrafico() {
 </td></tr>
 <tr><td style="background:#fff;padding:0;">
   <div style="padding:20px 32px 10px;"><div style="font-size:11px;font-weight:700;color:#3498db;letter-spacing:2px;text-transform:uppercase;">DETALLE DE EMBARQUES</div></div>
-  <div style="overflow-x:auto;"><table width="100%" cellpadding="0" cellspacing="0" style="min-width:820px;">
+  <div style="overflow-x:auto;"><table width="100%" cellpadding="0" cellspacing="0" style="min-width:1080px;">
     <thead><tr style="background:#f7f9fc;border-bottom:2px solid #e8edf2;">
       <th style="padding:10px 12px;text-align:left;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">PROYECTO</th>
       <th style="padding:10px 12px;text-align:left;font-size:10px;color:#718096;letter-spacing:1px;text-transform:uppercase;font-weight:700;">ESTADO</th>
@@ -1984,7 +2003,7 @@ export default function AgenteTrafico() {
           zIndex: 9999, padding: 16,
         }} onClick={() => setVerReporte(false)}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: '#0d1117', borderRadius: 16, width: '100%', maxWidth: 1080,
+            background: '#0d1117', borderRadius: 16, width: '100%', maxWidth: 1200,
             maxHeight: '92vh', display: 'flex', flexDirection: 'column',
             border: '1px solid #30363d', overflow: 'hidden',
           }}>
@@ -2000,6 +2019,18 @@ export default function AgenteTrafico() {
                 <div style={{ fontSize: 11, color: '#8b949e' }}>Así es como lo recibe el equipo en su correo</div>
               </div>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button
+                  onClick={handleDescargarReporteImagen}
+                  disabled={descargandoReporteImg}
+                  style={{
+                    background: 'rgba(167,139,250,0.15)', color: '#a78bfa',
+                    border: '1px solid #a78bfa44', borderRadius: 8, padding: '8px 16px', fontSize: 13,
+                    fontWeight: 600, cursor: descargandoReporteImg ? 'not-allowed' : 'pointer',
+                    opacity: descargandoReporteImg ? 0.7 : 1, transition: 'all 0.2s',
+                  }}
+                >
+                  {descargandoReporteImg ? '⏳ Generando…' : '🖼 Descargar Imagen'}
+                </button>
                 <button
                   onClick={handleEnviarReporte}
                   disabled={enviandoReporte}
@@ -2023,6 +2054,7 @@ export default function AgenteTrafico() {
             {/* Iframe con el HTML del reporte */}
             <div style={{ flex: 1, overflow: 'hidden', background: '#f0f4f8' }}>
               <iframe
+                ref={reporteIframeRef}
                 srcDoc={generarHTMLReporte()}
                 style={{ width: '100%', height: '100%', border: 'none', minHeight: 600 }}
                 title="Reporte Diario InfiniteX"
