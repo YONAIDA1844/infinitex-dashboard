@@ -5,6 +5,19 @@ import * as XLSX from 'xlsx';
 const SUPABASE_URL = 'https://aoueqkinzrhawzfsiulv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvdWVxa2luenJoYXd6ZnNpdWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDkyMTAsImV4cCI6MjA5NjYyNTIxMH0.wjtwtkUdWvgV188EcuK-4qbAilJc0Q-PuhVD646nue0';
 
+// Combina proveedores de dos fuentes (Odoo y la tabla proveedores de Supabase, donde se
+// guardan los agregados a mano) sin que una sobrescriba a la otra — ambas cargan en paralelo
+// al montar la página, así que el resultado depende de cuál responda primero. Deduplica por
+// nombre (case-insensitive) para no repetir un proveedor que ya exista en ambos lados.
+function mergeProveedores(prev: any[], nuevos: any[]): any[] {
+  const porNombre = new Map(prev.map((p: any) => [(p.nombre || '').trim().toLowerCase(), p]));
+  nuevos.forEach((p: any) => {
+    const key = (p.nombre || '').trim().toLowerCase();
+    if (key && !porNombre.has(key)) porNombre.set(key, p);
+  });
+  return [...porNombre.values()].sort((a: any, b: any) => (a.nombre || '').localeCompare(b.nombre || ''));
+}
+
 function excelDateToISO(val: unknown): string {
   if (!val) return '';
   if (typeof val === 'number') {
@@ -214,6 +227,15 @@ export default function AgenteTrafico() {
   }, []);
 
   useEffect(() => {
+    fetch(`${SUPABASE_URL}/rest/v1/proveedores?activo=eq.true&order=nombre.asc`, {
+      headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}` },
+    })
+      .then(r => r.json())
+      .then(data => { if (Array.isArray(data)) setProveedores(prev => mergeProveedores(prev, data)); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     fetch(`${SUPABASE_URL}/functions/v1/agente-notificador`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
@@ -243,7 +265,7 @@ export default function AgenteTrafico() {
             tipo: 'fabricante',
             notas: '',
           }));
-          setProveedores(mapped);
+          setProveedores(prev => mergeProveedores(prev, mapped));
         }
       })
       .catch(() => {});
