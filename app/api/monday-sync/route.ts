@@ -15,12 +15,23 @@ const COL = {
   DISPONIBLE_ANKER: 'date_mkzck0x5',
 };
 
-// Traduce el "Estado" de Monday a los valores que ya usa InfiniteX. Lo no reconocido se pasa tal cual.
-const ESTADO_MONDAY_A_INFINITEX: Record<string, string> = {
-  'Cargando en fabrica': 'En proceso de carga en fábrica',
-  'En puerto de origen': 'En Puerto Origen',
-  'En transito': 'En Transito',
-};
+// Traduce el "Estado" de Monday a los valores que ya usa InfiniteX. Monday no siempre manda el
+// texto exacto esperado (mayúsculas distintas, espacios dobles, sufijos como "PANAMA" pegados al
+// nombre del puerto, ej. "EN PUERTO DESTINO  PANAMA"), así que se clasifica por palabra clave en
+// vez de exigir una coincidencia exacta. Lo no reconocido se pasa tal cual.
+function traducirEstadoMonday(estadoMonday: string): string {
+  const s = estadoMonday.toLowerCase();
+  if (s.includes('transito') || s.includes('tránsito')) return 'En Transito';
+  if (s.includes('destino')) return 'En Puerto Destino';
+  if (s.includes('origen')) return 'En Puerto Origen';
+  if (s.includes('fabrica') || s.includes('fábrica')) return 'En proceso de carga en fábrica';
+  if (s.includes('cotiz')) return 'En cotización';
+  if (s.includes('aduana')) return 'En Aduana';
+  if (s.includes('liberado')) return 'Liberado';
+  if (s.includes('entregado')) return 'Entregado';
+  if (s.includes('disponible')) return 'Disponible en Anker';
+  return estadoMonday;
+}
 
 function colText(columnValues: { id: string; text: string | null }[], id: string): string {
   return columnValues.find(c => c.id === id)?.text?.trim() || '';
@@ -110,7 +121,7 @@ export async function POST(req: NextRequest) {
         eta: colText(cv, COL.ETA) || null,
         llegada_anker: colText(cv, COL.LLEGADA_ANKER) || null,
         fecha_disponible: colText(cv, COL.DISPONIBLE_ANKER) || null,
-        ...(estadoMonday ? { estado: ESTADO_MONDAY_A_INFINITEX[estadoMonday] || estadoMonday } : {}),
+        ...(estadoMonday ? { estado: traducirEstadoMonday(estadoMonday) } : {}),
       };
 
       try {
