@@ -96,6 +96,27 @@ export default function AgenteAdministracion() {
     conErrores: facturasConDatos.filter((f: any) => f.error).length,
   };
 
+  const [sincronizando, setSincronizando] = useState(false);
+  async function handleSincronizarMonday() {
+    setSincronizando(true);
+    setNotifEstado('enviando');
+    setNotifMsg('Sincronizando facturas desde Monday.com…');
+    try {
+      const res = await fetch('/api/monday-sync-facturas', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        setNotifEstado('ok');
+        setNotifMsg(`✅ Monday: ${data.creadas} nueva(s), ${data.actualizadas} actualizada(s), ${data.agentesCreados} agente(s) nuevo(s), ${data.sinMonto} sin costo de flete todavía.`);
+        await cargarTodo();
+      } else {
+        setNotifEstado('error'); setNotifMsg('❌ Error al sincronizar: ' + data.error);
+      }
+    } catch (e: any) {
+      setNotifEstado('error'); setNotifMsg('❌ Error de conexión: ' + e.message);
+    }
+    setSincronizando(false);
+  }
+
   async function handleEjecutar() {
     setEjecutando(true);
     setNotifEstado('enviando');
@@ -254,6 +275,9 @@ export default function AgenteAdministracion() {
         <div style={{ marginBottom: 24, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button onClick={handleEjecutar} disabled={ejecutando} style={{ background: '#58a6ff', color: '#0d1117', border: 'none', borderRadius: 8, padding: '10px 22px', fontSize: 14, fontWeight: 600, cursor: ejecutando ? 'not-allowed' : 'pointer', opacity: ejecutando ? 0.6 : 1 }}>
             {ejecutando ? '⏳ Ejecutando…' : '▶ Ejecutar Ahora'}
+          </button>
+          <button onClick={handleSincronizarMonday} disabled={sincronizando} style={{ background: 'rgba(0,212,170,0.12)', color: '#00d4aa', border: '1px solid #00d4aa44', borderRadius: 8, padding: '10px 22px', fontSize: 14, fontWeight: 600, cursor: sincronizando ? 'not-allowed' : 'pointer', opacity: sincronizando ? 0.6 : 1 }}>
+            {sincronizando ? '⏳ Sincronizando…' : '🔄 Sincronizar Facturas desde Monday'}
           </button>
           <button onClick={() => { setFormFacturaAbierto(!formFacturaAbierto); setEditandoFacturaId(null); setFormFactura({ ...FORM_FACTURA_VACIO }); }} style={{ background: formFacturaAbierto ? '#21262d' : 'rgba(88,166,255,0.1)', color: '#58a6ff', border: '1px solid #58a6ff44', borderRadius: 8, padding: '10px 22px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
             {formFacturaAbierto ? '✕ Cancelar' : '+ Nueva Factura'}
