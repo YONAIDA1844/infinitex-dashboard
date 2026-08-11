@@ -2,15 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import {
   type Factura, type Agente, type Embarque, type ReglaAlerta,
   calcularVencimiento, calcularDiasRestantes, clasificarEstadoPago,
-  clasificarNotificacion, detectarError, debeProcesar, generarEmailFactura,
-  generarResumenHTML, REGLAS_ALERTA_DEFAULT,
+  clasificarNotificacion, detectarError, debeProcesar,
+  generarAvisoInterno, generarNotificacionPago, generarResumenHTML, REGLAS_ALERTA_DEFAULT,
 } from '@/lib/agente-administracion/motor';
 
 const SUPABASE_URL = 'https://aoueqkinzrhawzfsiulv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvdWVxa2luenJoYXd6ZnNpdWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDkyMTAsImV4cCI6MjA5NjYyNTIxMH0.wjtwtkUdWvgV188EcuK-4qbAilJc0Q-PuhVD646nue0';
 
-// Destinatarios internos de Administración — distintos al equipo de Producción
-// (Daniel/Paulet/Ruth) que usa el Agente de Tráfico.
+// Destinatarios internos de Administración — TODOS los avisos de vencimiento
+// van acá (Kadi es quien le debe al agente, no al revés). Distintos al
+// equipo de Producción (Daniel/Paulet/Ruth) que usa el Agente de Tráfico.
 const DESTINATARIOS_INTERNOS = [
   { nombre: 'Administración Kadi', email: 'adm.kadi@sicobenediciones.com' },
   { nombre: 'Stephannie Gallardo', email: 'soporte@sicobenediciones.com' },
@@ -71,6 +72,30 @@ async function enviarCorreo(destinatario: string, asunto: string, html: string):
   }
 }
 
+async function yaNotificado(facturaId: string, tipo: string): Promise<boolean> {
+  const res = await supabaseFetch(
+    `notificaciones_facturas?factura_id=eq.${facturaId}&tipo_notificacion=eq.${tipo}&estado_envio=neq.error&select=id&limit=1`,
+    { headers: { Prefer: 'return=representation' } }
+  );
+  const data = await res.json();
+  return Array.isArray(data) && data.length > 0;
+}
+
+async function registrarNotificacion(facturaId: string, tipo: string, destinatario: string, asunto: string, html: string, resultado: { ok: boolean; error?: string }, modoSimulacion: boolean) {
+  await supabaseFetch('notificaciones_facturas', {
+    method: 'POST',
+    body: JSON.stringify({
+      factura_id: facturaId,
+      tipo_notificacion: tipo,
+      destinatario,
+      asunto,
+      cuerpo_html: html,
+      estado_envio: resultado.ok ? (modoSimulacion ? 'simulado' : 'enviado') : 'error',
+      error_detalle: resultado.error || null,
+    }),
+  });
+}
+
 // Vercel Cron llama por GET; el botón "Ejecutar Ahora" del dashboard llama por
 // POST — ambos ejecutan exactamente la misma lógica.
 export async function GET(req: NextRequest) {
@@ -113,20 +138,54 @@ async function ejecutar(req: NextRequest) {
     const embarquePorBl = new Map((embarques || []).map((e: any) => [e.bl, e]));
 
     const resumen = {
-      pendientes: 0, vencen7d: 0, vencen3d: 0, vencenManana: 0, vencenHoy: 0,
+      pendientes: 0, vencen15d: 0, vencen7d: 0, vencen3d: 0, vencenManana: 0, vencenHoy: 0,
       vencidas: 0, pagadasRecientes: 0, sinLlegada: 0, sinCredito: 0, conErrores: 0,
     };
     const detalleErrores: { factura: string; motivo: string }[] = [];
     const notificacionesEnviadas: { factura: string; tipo: string; destinatario: string }[] = [];
 
+    // Notificación de pago al agente — la ÚNICA que sale hacia afuera, y solo
+    // una vez, cuando la factura ya está Pagada. Todo lo demás es interno.
+    async function intentarNotificarPago(factura: Factura) {
+      if (!factura.agente_id) return;
+      const agente = proveedorPorId.get(factura.agente_id) as Agente | undefined;
+      if (!agente?.email) return;
+      if (await yaNotificado(factura.id, 'pago_confirmado')) return;
+      const { asunto, html } = generarNotificacionPago(factura, agente);
+      const resultado = await enviarCorreo(agente.email, asunto, html);
+      await registrarNotificacion(factura.id, 'pago_confirmado', agente.email, asunto, html, resultado, modoSimulacion);
+      notificacionesEnviadas.push({ factura: factura.numero_factura || factura.id, tipo: 'pago_confirmado', destinatario: agente.email });
+    }
+
+    // Aviso interno cuando la carga llega al puerto — arranca el crédito.
+    // Independiente de si la factura tiene otros datos incompletos: es sobre
+    // el embarque, no sobre la factura en sí.
+    async function intentarNotificarLlegada(factura: Factura, agente: Agente | null, embarque: Embarque | null) {
+      if (!embarque?.llegada_real || agente?.dias_credito == null) return;
+      if (await yaNotificado(factura.id, 'llegada_carga')) return;
+      const vencimiento = calcularVencimiento(embarque.llegada_real, agente.dias_credito)!;
+      const diasRestantes = calcularDiasRestantes(hoyISO, vencimiento)!;
+      const { asunto, html } = generarAvisoInterno('llegada_carga', { factura, agente, embarque, vencimiento, diasRestantes });
+      for (const dest of DESTINATARIOS_INTERNOS) {
+        const resultado = await enviarCorreo(dest.email, asunto, html);
+        await registrarNotificacion(factura.id, 'llegada_carga', dest.email, asunto, html, resultado, modoSimulacion);
+      }
+      notificacionesEnviadas.push({ factura: factura.numero_factura || factura.id, tipo: 'llegada_carga', destinatario: 'Administración' });
+    }
+
     for (const factura of facturas || []) {
       if (!debeProcesar(factura)) {
-        if (factura.estado_pago === 'Pagada') resumen.pagadasRecientes++;
+        if (factura.estado_pago === 'Pagada') {
+          resumen.pagadasRecientes++;
+          await intentarNotificarPago(factura);
+        }
         continue;
       }
 
       const agente = factura.agente_id ? (proveedorPorId.get(factura.agente_id) as Agente | undefined) || null : null;
       const embarque = factura.embarque_bl ? (embarquePorBl.get(factura.embarque_bl) as Embarque | undefined) || null : null;
+
+      await intentarNotificarLlegada(factura, agente, embarque);
 
       const motivo = detectarError(factura, agente, embarque);
       if (motivo) {
@@ -147,6 +206,7 @@ async function ejecutar(req: NextRequest) {
       const tipoNotif = clasificarNotificacion(diasRestantes, reglas);
 
       resumen.pendientes++;
+      if (diasRestantes === 15) resumen.vencen15d++;
       if (diasRestantes === 7) resumen.vencen7d++;
       if (diasRestantes === 3) resumen.vencen3d++;
       if (diasRestantes === 1) resumen.vencenManana++;
@@ -159,34 +219,16 @@ async function ejecutar(req: NextRequest) {
       });
 
       if (!tipoNotif) continue;
+      if (await yaNotificado(factura.id, tipoNotif)) continue;
 
-      // Anti-spam: no repetir el mismo tipo de recordatorio para la misma factura.
-      const yaEnviadoRes = await supabaseFetch(
-        `notificaciones_facturas?factura_id=eq.${factura.id}&tipo_notificacion=eq.${tipoNotif}&estado_envio=neq.error&select=id&limit=1`,
-        { headers: { Prefer: 'return=representation' } }
-      );
-      const yaEnviadoData = await yaEnviadoRes.json();
-      if (Array.isArray(yaEnviadoData) && yaEnviadoData.length > 0) continue;
-
-      const { asunto, html } = generarEmailFactura(tipoNotif, {
+      const { asunto, html } = generarAvisoInterno(tipoNotif, {
         factura, agente: agente!, embarque: embarque!, vencimiento, diasRestantes,
       });
-      const resultado = await enviarCorreo(agente!.email!, asunto, html);
-
-      await supabaseFetch('notificaciones_facturas', {
-        method: 'POST',
-        body: JSON.stringify({
-          factura_id: factura.id,
-          tipo_notificacion: tipoNotif,
-          destinatario: agente!.email,
-          asunto,
-          cuerpo_html: html,
-          estado_envio: resultado.ok ? (modoSimulacion ? 'simulado' : 'enviado') : 'error',
-          error_detalle: resultado.error || null,
-        }),
-      });
-
-      notificacionesEnviadas.push({ factura: factura.numero_factura || factura.id, tipo: tipoNotif, destinatario: agente!.email! });
+      for (const dest of DESTINATARIOS_INTERNOS) {
+        const resultado = await enviarCorreo(dest.email, asunto, html);
+        await registrarNotificacion(factura.id, tipoNotif, dest.email, asunto, html, resultado, modoSimulacion);
+      }
+      notificacionesEnviadas.push({ factura: factura.numero_factura || factura.id, tipo: tipoNotif, destinatario: 'Administración' });
     }
 
     const fechaHoy = `${hoy.getUTCDate()} de ${

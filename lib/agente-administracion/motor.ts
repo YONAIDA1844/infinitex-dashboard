@@ -29,6 +29,7 @@ export interface ReglaAlerta {
 // Set de reglas por defecto (sección 7) — usadas si la tabla reglas_alerta_facturas
 // está vacía o no se pudo leer, para que el motor nunca se quede sin clasificar.
 export const REGLAS_ALERTA_DEFAULT: ReglaAlerta[] = [
+  { dias_offset: 15, tipo_notificacion: 'aviso_15d', activo: true },
   { dias_offset: 7, tipo_notificacion: 'preventivo_7d', activo: true },
   { dias_offset: 3, tipo_notificacion: 'seguimiento_3d', activo: true },
   { dias_offset: 1, tipo_notificacion: 'alerta_1d', activo: true },
@@ -168,36 +169,59 @@ export interface DatosCorreo {
   diasRestantes: number;
 }
 
+// IMPORTANTE — dirección de las notificaciones (corregido 2026-08-11): Kadi es
+// quien le debe al agente logístico, no al revés. Así que TODOS los avisos de
+// vencimiento (llegada, 15/7/3/1/0 días, vencida) son INTERNOS — para que
+// Administración no se le pase la fecha de pago — y nunca se le manda al
+// agente. El agente solo recibe un correo cuando Kadi YA le pagó (ver
+// generarNotificacionPago más abajo), como una notificación de pago, no un
+// recordatorio de cobro.
 const PLANTILLA_COPY: Record<string, { titulo: string; color: string; cuerpo: (d: DatosCorreo) => string }> = {
-  preventivo_7d: {
-    titulo: 'Recordatorio de pago próximo',
+  llegada_carga: {
+    titulo: 'Carga llegada al puerto — inicia el crédito',
+    color: '#0284c7',
+    cuerpo: d => `La carga del embarque <strong>${d.embarque.descripcion || d.embarque.bl}</strong> llegó al puerto el ${fmtLarga(d.embarque.llegada_real!)}. A partir de esta fecha corren los <strong>${d.agente.dias_credito ?? '?'} días de crédito</strong> acordados con <strong>${d.agente.nombre}</strong>. Fecha de pago estimada: <strong>${fmtLarga(d.vencimiento)}</strong>.`,
+  },
+  aviso_15d: {
+    titulo: 'Pago próximo — 15 días',
     color: '#1f6feb',
-    cuerpo: d => `Le escribimos para anticiparle que la factura <strong>${d.factura.numero_factura}</strong> vence en <strong>7 días</strong>, el ${fmtLarga(d.vencimiento)}. No se requiere ninguna acción inmediata — este es solo un aviso preventivo para su planificación.`,
+    cuerpo: d => `El pago a <strong>${d.agente.nombre}</strong> por la factura <strong>${d.factura.numero_factura}</strong> vence en <strong>15 días</strong>, el ${fmtLarga(d.vencimiento)}. Aviso preventivo para planificación de tesorería.`,
+  },
+  preventivo_7d: {
+    titulo: 'Pago próximo — 7 días',
+    color: '#1f6feb',
+    cuerpo: d => `El pago a <strong>${d.agente.nombre}</strong> por la factura <strong>${d.factura.numero_factura}</strong> vence en <strong>7 días</strong>, el ${fmtLarga(d.vencimiento)}.`,
   },
   seguimiento_3d: {
-    titulo: 'Seguimiento de pago',
+    titulo: 'Pago próximo — 3 días',
     color: '#d29922',
-    cuerpo: d => `Le recordamos que la factura <strong>${d.factura.numero_factura}</strong> vence en <strong>3 días</strong>, el ${fmtLarga(d.vencimiento)}. Agradecemos coordinar el pago dentro del plazo acordado.`,
+    cuerpo: d => `El pago a <strong>${d.agente.nombre}</strong> por la factura <strong>${d.factura.numero_factura}</strong> vence en <strong>3 días</strong>, el ${fmtLarga(d.vencimiento)}. Favor coordinar el pago dentro del plazo acordado.`,
   },
   alerta_1d: {
-    titulo: 'Factura vence mañana',
+    titulo: 'Pago vence mañana',
     color: '#d9730d',
-    cuerpo: d => `La factura <strong>${d.factura.numero_factura}</strong> vence <strong>mañana</strong>, ${fmtLarga(d.vencimiento)}. Le pedimos amablemente confirmar el estado del pago.`,
+    cuerpo: d => `El pago a <strong>${d.agente.nombre}</strong> por la factura <strong>${d.factura.numero_factura}</strong> vence <strong>mañana</strong>, ${fmtLarga(d.vencimiento)}.`,
   },
   vencimiento_hoy: {
-    titulo: 'Factura vence hoy',
+    titulo: 'Pago vence hoy',
     color: '#c0261f',
-    cuerpo: d => `La factura <strong>${d.factura.numero_factura}</strong> vence <strong>hoy</strong>, ${fmtLarga(d.vencimiento)}. Quedamos atentos a la confirmación del pago.`,
+    cuerpo: d => `El pago a <strong>${d.agente.nombre}</strong> por la factura <strong>${d.factura.numero_factura}</strong> vence <strong>hoy</strong>, ${fmtLarga(d.vencimiento)}.`,
   },
   vencida: {
-    titulo: 'Factura vencida — seguimiento',
+    titulo: 'Pago vencido — seguimiento',
     color: '#8b0000',
-    cuerpo: d => `La factura <strong>${d.factura.numero_factura}</strong> venció el ${fmtLarga(d.vencimiento)} (hace ${Math.abs(d.diasRestantes)} día${Math.abs(d.diasRestantes) === 1 ? '' : 's'}). Le solicitamos amablemente coordinar el pago a la brevedad, o informarnos si ya fue procesado para actualizar nuestros registros.`,
+    cuerpo: d => `El pago a <strong>${d.agente.nombre}</strong> por la factura <strong>${d.factura.numero_factura}</strong> venció el ${fmtLarga(d.vencimiento)} (hace ${Math.abs(d.diasRestantes)} día${Math.abs(d.diasRestantes) === 1 ? '' : 's'}). Favor coordinar el pago a la brevedad, o actualizar el registro si ya se procesó.`,
+  },
+  manual: {
+    titulo: 'Recordatorio manual',
+    color: '#a78bfa',
+    cuerpo: d => `Recordatorio manual: el pago a <strong>${d.agente.nombre}</strong> por la factura <strong>${d.factura.numero_factura}</strong> vence el ${fmtLarga(d.vencimiento)} (${d.diasRestantes >= 0 ? `en ${d.diasRestantes} día(s)` : `venció hace ${Math.abs(d.diasRestantes)} día(s)`}).`,
   },
 };
 
 export interface ResumenDiario {
   pendientes: number;
+  vencen15d: number;
   vencen7d: number;
   vencen3d: number;
   vencenManana: number;
@@ -227,6 +251,7 @@ export function generarResumenHTML(fecha: string, resumen: ResumenDiario, errore
 <tr><td style="padding:20px 24px 6px;">
   <table width="100%" cellpadding="0" cellspacing="0"><tr>
     ${tile('Pendientes', resumen.pendientes, '#1f6feb')}
+    ${tile('Vencen 15d', resumen.vencen15d, '#1f6feb')}
     ${tile('Vencen 7d', resumen.vencen7d, '#1f6feb')}
     ${tile('Vencen 3d', resumen.vencen3d, '#d29922')}
     ${tile('Vencen mañana', resumen.vencenManana, '#d9730d')}
@@ -249,34 +274,65 @@ export function generarResumenHTML(fecha: string, resumen: ResumenDiario, errore
 </body></html>`;
 }
 
-export function generarEmailFactura(tipo: string, datos: DatosCorreo): { asunto: string; html: string } {
-  const p = PLANTILLA_COPY[tipo] || PLANTILLA_COPY.seguimiento_3d;
+/** Aviso interno a Administración (llegada, 15/7/3/1/0 días, vencida, manual) — nunca al agente. */
+export function generarAvisoInterno(tipo: string, datos: DatosCorreo): { asunto: string; html: string } {
+  const p = PLANTILLA_COPY[tipo] || PLANTILLA_COPY.manual;
   const { factura, agente, embarque } = datos;
-  const asunto = `[Sicoben Ediciones] ${p.titulo} — Factura ${factura.numero_factura}`;
+  const asunto = `[InfiniteX] ${p.titulo} — ${agente.nombre} · Factura ${factura.numero_factura}`;
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:0;background:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f8;padding:20px 10px;"><tr><td align="center">
 <table width="640" cellpadding="0" cellspacing="0" style="max-width:640px;width:100%;background:#fff;border-radius:12px;overflow:hidden;">
 <tr><td style="background:#1a2332;padding:20px 28px;border-bottom:3px solid ${p.color};">
   <div style="font-size:20px;font-weight:800;color:#fff;">InfiniteX <span style="color:#5ba3e0;">·</span> Sicoben Ediciones</div>
-  <div style="font-size:12px;color:#8b949e;margin-top:2px;">Kadi Internacional S.A.</div>
+  <div style="font-size:12px;color:#8b949e;margin-top:2px;">Agente de Administración — aviso interno</div>
 </td></tr>
 <tr><td style="padding:24px 28px;">
   <div style="display:inline-block;background:${p.color}18;color:${p.color};font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:5px 12px;border-radius:20px;margin-bottom:14px;">${p.titulo}</div>
-  <p style="font-size:14px;color:#1a2332;line-height:1.6;">Estimado equipo de <strong>${agente.nombre}</strong>,</p>
+  <p style="font-size:14px;color:#1a2332;line-height:1.6;">Equipo de Administración,</p>
   <p style="font-size:14px;color:#1a2332;line-height:1.6;">${p.cuerpo(datos)}</p>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f7f9fc;border-radius:8px;margin:18px 0;">
     <tr><td style="padding:14px 18px;font-size:13px;color:#4a5568;">
+      <div style="margin-bottom:6px;"><strong>Agente logístico:</strong> ${agente.nombre}${agente.email ? ` (${agente.email})` : ''}</div>
       <div style="margin-bottom:6px;"><strong>Factura:</strong> ${factura.numero_factura}</div>
       <div style="margin-bottom:6px;"><strong>Embarque:</strong> ${embarque.descripcion || embarque.bl}</div>
       <div style="margin-bottom:6px;"><strong>Monto:</strong> ${factura.monto != null ? fmtMonto(factura.monto, factura.moneda || 'USD') : '-'}</div>
-      <div style="margin-bottom:6px;"><strong>Llegada al puerto:</strong> ${fmtLarga(embarque.llegada_real!)}</div>
-      <div><strong>Fecha de vencimiento:</strong> ${fmtLarga(datos.vencimiento)}</div>
+      <div style="margin-bottom:6px;"><strong>Llegada al puerto:</strong> ${embarque.llegada_real ? fmtLarga(embarque.llegada_real) : '-'}</div>
+      <div><strong>Fecha de pago (vencimiento):</strong> ${fmtLarga(datos.vencimiento)}</div>
     </td></tr>
   </table>
-  <p style="font-size:13px;color:#718096;line-height:1.6;">Quedamos atentos a cualquier consulta. Gracias por su colaboración.</p>
+  <p style="font-size:13px;color:#718096;line-height:1.6;">Este es un aviso interno — no se envía al agente logístico.</p>
 </td></tr>
-<tr><td style="background:#f0f4f8;padding:14px 28px;font-size:11px;color:#8b949e;">InfiniteX · Sicoben Ediciones Panamá — correo generado automáticamente por el Agente de Administración.</td></tr>
+<tr><td style="background:#f0f4f8;padding:14px 28px;font-size:11px;color:#8b949e;">InfiniteX · Sicoben Ediciones Panamá — generado automáticamente por el Agente de Administración.</td></tr>
+</table>
+</td></tr></table>
+</body></html>`;
+  return { asunto, html };
+}
+
+/**
+ * Notificación de pago — la ÚNICA que se le manda al agente logístico, y solo
+ * una vez que Kadi International S.A. ya pagó la factura. Es un aviso de pago
+ * realizado, no un recordatorio de cobro.
+ */
+export function generarNotificacionPago(factura: Factura, agente: Agente): { asunto: string; html: string } {
+  const asunto = `[Kadi International S.A.] Notificación de pago — Factura ${factura.numero_factura}`;
+  const fechaPago = factura.fecha_pago ? fmtLarga(factura.fecha_pago) : 'hoy';
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f8;padding:20px 10px;"><tr><td align="center">
+<table width="640" cellpadding="0" cellspacing="0" style="max-width:640px;width:100%;background:#fff;border-radius:12px;overflow:hidden;">
+<tr><td style="background:#1a2332;padding:20px 28px;border-bottom:3px solid #1a9e5c;">
+  <div style="font-size:20px;font-weight:800;color:#fff;">InfiniteX <span style="color:#5ba3e0;">·</span> Sicoben Ediciones</div>
+  <div style="font-size:12px;color:#8b949e;margin-top:2px;">Kadi International S.A.</div>
+</td></tr>
+<tr><td style="padding:24px 28px;">
+  <div style="display:inline-block;background:#1a9e5c18;color:#1a9e5c;font-weight:700;font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:5px 12px;border-radius:20px;margin-bottom:14px;">✓ Pago realizado</div>
+  <p style="font-size:14px;color:#1a2332;line-height:1.6;">Estimado equipo de <strong>${agente.nombre}</strong>,</p>
+  <p style="font-size:14px;color:#1a2332;line-height:1.6;">Kadi International S.A. le informa que la factura <strong>${factura.numero_factura}</strong>${factura.monto != null ? ` por <strong>${fmtMonto(factura.monto, factura.moneda || 'USD')}</strong>` : ''} ha sido <strong>pagada</strong> el ${fechaPago}.</p>
+  <p style="font-size:13px;color:#718096;line-height:1.6;">Gracias por su servicio. Quedamos atentos a cualquier consulta.</p>
+</td></tr>
+<tr><td style="background:#f0f4f8;padding:14px 28px;font-size:11px;color:#8b949e;">Kadi International S.A. — Sicoben Ediciones Panamá.</td></tr>
 </table>
 </td></tr></table>
 </body></html>`;
