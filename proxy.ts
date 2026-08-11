@@ -14,6 +14,12 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // El cron del Agente de Administración llega sin cookie de sesión — valida
+  // su propio secreto (CRON_SECRET) o la cookie internamente, ver route.ts.
+  if (pathname.startsWith('/api/agente-administracion')) {
+    return NextResponse.next();
+  }
+
   // Rutas protegidas
   if (!autenticado) {
     return NextResponse.redirect(new URL('/login', request.url));
