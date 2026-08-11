@@ -8,7 +8,7 @@ export default function Home() {
     { num: '04', nombre: 'Agente Despacho',       area: 'Despacho y Entrega',         estado: 'pendiente',  ruta: null,              icono: '🚚' },
     { num: '05', nombre: 'Agente Clientes',       area: 'Servicio al Cliente',        estado: 'pendiente',  ruta: null,              icono: '👥' },
     { num: '06', nombre: 'Agente Tráfico',        area: 'Produccion / Logística',     estado: 'activo',     ruta: '/agente-trafico', icono: '🌐' },
-    { num: '07', nombre: 'Agente Administración', area: 'Administración General',     estado: 'pendiente',  ruta: null,              icono: '🗂️' },
+    { num: '07', nombre: 'Agente Administración', area: 'Administración General',     estado: 'desarrollo', ruta: '/agente-administracion', icono: '🗂️' },
   ];
 
   const operativos   = agentes.filter(a => a.estado === 'activo').length;
