@@ -301,7 +301,6 @@ export function generarAvisoInterno(tipo: string, datos: DatosCorreo): { asunto:
       <div><strong>Fecha de pago (vencimiento):</strong> ${fmtLarga(datos.vencimiento)}</div>
     </td></tr>
   </table>
-  <p style="font-size:13px;color:#718096;line-height:1.6;">Este es un aviso interno — no se envía al agente logístico.</p>
 </td></tr>
 <tr><td style="background:#f0f4f8;padding:14px 28px;font-size:11px;color:#8b949e;">InfiniteX · Sicoben Ediciones Panamá — generado automáticamente por el Agente de Administración.</td></tr>
 </table>
