@@ -306,8 +306,8 @@ export default function AgenteAdministracion() {
         </div>
 
         {modoSimulacion && (
-          <div style={{ marginBottom: 20, padding: '12px 16px', borderRadius: 8, background: 'rgba(210,153,34,0.12)', border: '1px solid #d29922', color: '#d29922', fontSize: 13, fontWeight: 600 }}>
-            ⚠ MODO SIMULACIÓN ACTIVO — los correos se generan y se registran en la bitácora, pero no se envían de verdad hasta que se resuelva MailerSend.
+          <div style={{ marginBottom: 20, padding: '12px 16px', borderRadius: 8, background: 'rgba(123,188,240,0.10)', border: '1px solid #7bbcf0', color: '#7bbcf0', fontSize: 13, fontWeight: 600 }}>
+            ℹ MODO SIMULACIÓN ACTIVO — los correos se generan y se registran en la bitácora, pero no se envían de verdad hasta que se resuelva MailerSend.
           </div>
         )}
 
