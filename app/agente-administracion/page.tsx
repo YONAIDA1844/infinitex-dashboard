@@ -39,6 +39,12 @@ export default function AgenteAdministracion() {
   const [notifMsg, setNotifMsg] = useState('');
   const [notifEstado, setNotifEstado] = useState('');
 
+  const [previewAbierto, setPreviewAbierto] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [previewFacturaId, setPreviewFacturaId] = useState<string | null>(null);
+  const [cargandoPreview, setCargandoPreview] = useState(false);
+  const [enviandoManual, setEnviandoManual] = useState(false);
+
   const modoSimulacion = true; // refleja MODO_SIMULACION del backend (default activo)
 
   async function cargarTodo() {
@@ -192,8 +198,50 @@ export default function AgenteAdministracion() {
       method: 'PATCH', headers,
       body: JSON.stringify({ estado_pago: 'Pagada', fecha_pago: hoyISO || new Date().toISOString().slice(0, 10), updated_at: new Date().toISOString() }),
     });
-    setNotifEstado('ok'); setNotifMsg(`Factura "${f.numero_factura}" marcada como Pagada.`);
-    await cargarTodo();
+    setNotifEstado('ok'); setNotifMsg(`Factura "${f.numero_factura}" marcada como Pagada. Ejecutando el motor para notificar al agente…`);
+    // Correr el motor ahora mismo — así la notificación de pago al agente
+    // (la única que sale hacia afuera) se genera de inmediato, sin esperar
+    // al cron diario.
+    await handleEjecutar();
+  }
+
+  async function abrirPreview(facturaId: string) {
+    setPreviewFacturaId(facturaId);
+    setPreviewAbierto(true);
+    setCargandoPreview(true);
+    setPreviewData(null);
+    try {
+      const res = await fetch('/api/agente-administracion/preview', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ facturaId }),
+      });
+      const data = await res.json();
+      setPreviewData(data);
+    } catch (e: any) {
+      setPreviewData({ ok: false, error: e.message });
+    }
+    setCargandoPreview(false);
+  }
+
+  async function handleEnviarManual() {
+    if (!previewFacturaId) return;
+    setEnviandoManual(true);
+    try {
+      const res = await fetch('/api/agente-administracion/recordatorio-manual', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ facturaId: previewFacturaId }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setNotifEstado('ok');
+        setNotifMsg(`✅ Recordatorio manual enviado (${data.modoSimulacion ? 'simulado' : 'real'}) a: ${data.destinatarios.join(', ')}.`);
+        setPreviewAbierto(false);
+        await cargarTodo();
+      } else {
+        setNotifEstado('error'); setNotifMsg('❌ ' + data.error);
+      }
+    } catch (e: any) {
+      setNotifEstado('error'); setNotifMsg('❌ Error de conexión: ' + e.message);
+    }
+    setEnviandoManual(false);
   }
 
   const Tile = ({ label, valor, color }: { label: string; valor: number; color: string }) => (
@@ -381,7 +429,8 @@ export default function AgenteAdministracion() {
                       <td style={{ padding: '10px 12px' }}>
                         <span style={{ background: est.bg, color: est.color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{f.error ? '⚠ ' + f.error : f.estadoVivo}</span>
                       </td>
-                      <td style={{ padding: '10px 12px' }}>
+                      <td style={{ padding: '10px 12px', display: 'flex', gap: 6 }}>
+                        <button onClick={() => abrirPreview(f.id)} style={{ background: 'rgba(88,166,255,0.12)', color: '#58a6ff', border: '1px solid #58a6ff44', borderRadius: 6, padding: '5px 10px', fontSize: 11, cursor: 'pointer' }}>👁 Vista Previa</button>
                         {f.estado_pago !== 'Pagada' && (
                           <button onClick={() => handleMarcarPagada(f)} style={{ background: 'rgba(63,185,80,0.12)', color: '#3fb950', border: '1px solid #3fb95044', borderRadius: 6, padding: '5px 10px', fontSize: 11, cursor: 'pointer' }}>Marcar Pagada</button>
                         )}
@@ -465,6 +514,49 @@ export default function AgenteAdministracion() {
         <span style={{ fontWeight: 500, color: '#3d4f66' }}>InfiniteX · Sicoben Ediciones Panama</span>
         <span>KADI INTERNATIONAL S.A. © 2026</span>
       </div>
+
+      {previewAbierto && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16 }} onClick={() => setPreviewAbierto(false)}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#0d1117', borderRadius: 16, width: '100%', maxWidth: 720, maxHeight: '90vh', display: 'flex', flexDirection: 'column', border: '1px solid #30363d', overflow: 'hidden' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #21262d', display: 'flex', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>Vista Previa — así le llega a los destinatarios</div>
+                <div style={{ fontSize: 11, color: '#8b949e' }}>
+                  {cargandoPreview ? 'Cargando…' : previewData?.interno ? `Interno → Administración · tipo: ${previewData.interno.tipo}` : previewData?.pago ? 'Externo → Agente logístico (notificación de pago)' : 'Sin correo generable todavía'}
+                </div>
+              </div>
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+                {previewData?.interno && (
+                  <button onClick={handleEnviarManual} disabled={enviandoManual} style={{ background: 'rgba(88,166,255,0.15)', color: '#58a6ff', border: '1px solid #58a6ff44', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: enviandoManual ? 'not-allowed' : 'pointer', opacity: enviandoManual ? 0.6 : 1 }}>
+                    {enviandoManual ? '⏳ Enviando…' : '✉️ Enviar Ahora'}
+                  </button>
+                )}
+                <button onClick={() => setPreviewAbierto(false)} style={{ background: 'none', border: 'none', color: '#8b949e', fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: '0 4px' }}>✕</button>
+              </div>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto', background: '#f0f4f8', padding: 16 }}>
+              {cargandoPreview && <div style={{ color: '#4a5568', padding: 20 }}>Cargando vista previa…</div>}
+              {!cargandoPreview && !previewData?.interno && !previewData?.pago && (
+                <div style={{ color: '#4a5568', padding: 20 }}>
+                  Todavía no hay suficiente información (agente, llegada al puerto o crédito) para generar el correo de esta factura.
+                </div>
+              )}
+              {!cargandoPreview && previewData?.pago && (
+                <>
+                  <div style={{ fontSize: 11, color: '#3fb950', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase' }}>Notificación de pago al agente</div>
+                  <iframe srcDoc={previewData.pago.html} style={{ width: '100%', height: 360, border: '1px solid #d0d7de', borderRadius: 8, background: '#fff', marginBottom: 16 }} title="Preview pago" />
+                </>
+              )}
+              {!cargandoPreview && previewData?.interno && (
+                <>
+                  <div style={{ fontSize: 11, color: '#58a6ff', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase' }}>Aviso interno — Administración</div>
+                  <iframe srcDoc={previewData.interno.html} style={{ width: '100%', height: 420, border: '1px solid #d0d7de', borderRadius: 8, background: '#fff' }} title="Preview interno" />
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
