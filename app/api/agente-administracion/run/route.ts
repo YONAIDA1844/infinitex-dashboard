@@ -59,7 +59,11 @@ async function enviarCorreo(destinatario: string, asunto: string, html: string):
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: { email: 'noreply@sicobenediciones.com', name: 'InfiniteX · Sicoben Ediciones' },
+        // Mientras sicobenediciones.com no esté verificado en MailerSend, usa
+        // el dominio de prueba (configurable por env var) — una vez
+        // verificado el propio, basta con quitar MAILERSEND_FROM_EMAIL de
+        // Vercel para volver al remitente definitivo.
+        from: { email: process.env.MAILERSEND_FROM_EMAIL || 'noreply@sicobenediciones.com', name: 'InfiniteX · Sicoben Ediciones' },
         to: [{ email: destinatario }],
         subject: asunto,
         html,

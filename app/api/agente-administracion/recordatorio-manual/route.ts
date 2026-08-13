@@ -43,7 +43,7 @@ async function enviarCorreo(destinatario: string, asunto: string, html: string):
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: { email: 'noreply@sicobenediciones.com', name: 'InfiniteX · Sicoben Ediciones' },
+        from: { email: process.env.MAILERSEND_FROM_EMAIL || 'noreply@sicobenediciones.com', name: 'InfiniteX · Sicoben Ediciones' },
         to: [{ email: destinatario }],
         subject: asunto,
         html,
