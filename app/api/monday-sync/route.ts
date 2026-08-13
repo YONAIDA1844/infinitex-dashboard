@@ -25,6 +25,7 @@ function traducirEstadoMonday(estadoMonday: string): string {
   if (s.includes('destino')) return 'En Puerto Destino';
   if (s.includes('origen')) return 'En Puerto Origen';
   if (s.includes('fabrica') || s.includes('fábrica')) return 'En proceso de carga en fábrica';
+  if (s.includes('asignado')) return 'Asignado operador';
   if (s.includes('cotiz')) return 'En cotización';
   if (s.includes('descarg')) return 'Descargando en Bodega';
   if (s.includes('conteo')) return 'Conteo en Bodega';
