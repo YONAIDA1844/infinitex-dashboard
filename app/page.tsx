@@ -4,7 +4,7 @@ export default function Home() {
   const agentes = [
     { num: '01', nombre: 'Orquestador Central', area: 'Hub / Router — Aprobaciones', estado: 'desarrollo', ruta: '/orquestador',    icono: '⚙️' },
     { num: '02', nombre: 'Agente Bodega',        area: 'Bodega Anker',               estado: 'pendiente',  ruta: null,              icono: '📦' },
-    { num: '03', nombre: 'Agente Ventas',         area: 'Comercial / Ventas',         estado: 'pendiente',  ruta: null,              icono: '📊' },
+    { num: '03', nombre: 'Agente Ventas',         area: 'Comercial / Ventas',         estado: 'desarrollo', ruta: '/agente-ventas', icono: '📊' },
     { num: '04', nombre: 'Agente Despacho',       area: 'Despacho y Entrega',         estado: 'pendiente',  ruta: null,              icono: '🚚' },
     { num: '05', nombre: 'Agente Clientes',       area: 'Servicio al Cliente',        estado: 'pendiente',  ruta: null,              icono: '👥' },
     { num: '06', nombre: 'Agente Tráfico',        area: 'Produccion / Logística',     estado: 'activo',     ruta: '/agente-trafico', icono: '🌐' },
