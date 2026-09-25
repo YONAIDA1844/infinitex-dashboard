@@ -3,16 +3,16 @@ import { NextRequest, NextResponse } from 'next/server';
 const SUPABASE_URL = 'https://aoueqkinzrhawzfsiulv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvdWVxa2luenJoYXd6ZnNpdWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDkyMTAsImV4cCI6MjA5NjYyNTIxMH0.wjtwtkUdWvgV188EcuK-4qbAilJc0Q-PuhVD646nue0';
 
-// Columnas del board "Producción y Trafico" (Monday.com) usadas por el grupo "Trafico 2026"
+// Columnas del board "TRÁFICO" (18427925150), grupo "TRÁFICO 2026" — reemplaza al board mixto
+// "Producción y Trafico" anterior. Confirmadas por API el 2026-09-25.
 const COL = {
-  ESTADO: 'status',
-  DESCRIPCION: 'text_mm4m9gd4',
-  NAVIERA: 'texto',
-  ORIGEN: 'men__desplegable9',
-  ETD: 'date',
-  ETA: 'fecha',
-  LLEGADA_ANKER: 'fecha9',
-  DISPONIBLE_ANKER: 'date_mkzck0x5',
+  ESTADO: 'color_mm7f8cpb',
+  NAVIERA: 'dropdown_mm6hxxt4', // columna "AGENTE" en Monday
+  ORIGEN: 'dropdown_mm7fyt4g',
+  ETD: 'date_mm6hk4e8',
+  ETA: 'date_mm6hnq75',
+  LLEGADA_ANKER: 'date_mm6hp74g', // columna "ANKER"
+  DISPONIBLE_ANKER: 'date_mm6hn72b',
 };
 
 // Traduce el "Estado" de Monday a los valores que ya usa InfiniteX. Monday no siempre manda el
@@ -85,7 +85,7 @@ async function fetchMondayItems() {
   const json = await res.json();
   if (json.errors) throw new Error('Monday API error: ' + JSON.stringify(json.errors));
   const group = json.data?.boards?.[0]?.groups?.[0];
-  if (!group) throw new Error('No se encontró el grupo "Trafico 2026" en el board');
+  if (!group) throw new Error('No se encontró el grupo "TRÁFICO 2026" en el board');
   return group.items_page.items as { id: string; name: string; column_values: { id: string; text: string | null }[] }[];
 }
 
@@ -117,7 +117,7 @@ export async function POST(req: NextRequest) {
       const estadoMonday = colText(cv, COL.ESTADO);
 
       const camposMonday = {
-        descripcion: limpiarNombre(item.name) || colText(cv, COL.DESCRIPCION),
+        descripcion: limpiarNombre(item.name),
         naviera: colText(cv, COL.NAVIERA),
         origen: colText(cv, COL.ORIGEN),
         etd: colText(cv, COL.ETD) || null,

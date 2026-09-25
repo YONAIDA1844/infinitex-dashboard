@@ -3,14 +3,16 @@ import { NextRequest, NextResponse } from 'next/server';
 const SUPABASE_URL = 'https://aoueqkinzrhawzfsiulv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFvdWVxa2luenJoYXd6ZnNpdWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNDkyMTAsImV4cCI6MjA5NjYyNTIxMH0.wjtwtkUdWvgV188EcuK-4qbAilJc0Q-PuhVD646nue0';
 
-// Columnas del grupo "Trafico 2026" relacionadas con la factura de flete del
-// agente logístico — viven en el mismo board/grupo que ya sincroniza
-// monday-sync/route.ts, solo que en columnas que esa sync no traía.
+// Columnas del board "TRÁFICO" (18427925150), grupo "TRÁFICO 2026" relacionadas con la factura
+// de flete del agente logístico — viven en el mismo board/grupo que ya sincroniza
+// monday-sync/route.ts, solo que en columnas que esa sync no trae. Confirmadas por API el
+// 2026-09-25 (reemplaza al board mixto anterior).
 const COL = {
-  AGENTE: 'texto',
-  COSTO_FLETE: 'n_meros',
-  ESTATUS_PAGO: 'tracking_number_bl_mkmp8tey',
-  COTIZACIONES: 'archivo_mkmymqf7', // el archivo de factura/cotización de flete vive acá, no en "Factura Definitiva flete"
+  AGENTE: 'dropdown_mm6hxxt4', // columna "AGENTE"
+  COSTO_FLETE: 'numeric_mm6h1ydp',
+  PAGO_FINAL: 'boolean_mm6hdjrb', // checkbox "PAGO FINAL EMBARQUE" — texto "v" si está marcado
+  FACTURA_FINAL: 'file_mm7ffr4v', // columna "FACTURA FINAL FLETE"
+  COTIZACION_FLETE: 'file_mm6hd1eg', // columna "COTIZACIÓN FLETE" — respaldo si aún no hay factura final
 };
 
 function colText(columnValues: { id: string; text: string | null }[], id: string): string {
@@ -28,11 +30,10 @@ function derivarBL(item: { id: string; name: string }): string {
   return `${anioLetra}-${iniciales}-EMB${numero}`;
 }
 
-// El campo "Cotizaciones Logistica" (tipo archivo) es donde vive la factura
-// real, no hay un campo de texto limpio con el número — se extrae del primer
-// nombre de archivo adjunto (ej. ".../INQ%E2%80%9000276%E2%80%902026...pdf"
-// -> "INQ-00276-2026"). Si no hay archivo, se usa un identificador sintético
-// basado en el BL para no dejar la factura sin número.
+// El número de factura no tiene un campo de texto limpio en Monday — se extrae del primer
+// nombre de archivo adjunto en "FACTURA FINAL FLETE" (o "COTIZACIÓN FLETE" si esa aún está
+// vacía), ej. ".../INQ%E2%80%9000276%E2%80%902026...pdf" -> "INQ-00276-2026". Si no hay
+// archivo, se usa un identificador sintético basado en el BL para no dejar la factura sin número.
 function derivarNumeroFactura(cotizacionesText: string, bl: string): string {
   const primeraUrl = cotizacionesText.split(',')[0]?.trim();
   if (!primeraUrl) return `FLETE-${bl}`;
@@ -70,7 +71,7 @@ async function fetchMondayItems() {
   const json = await res.json();
   if (json.errors) throw new Error('Monday API error: ' + JSON.stringify(json.errors));
   const group = json.data?.boards?.[0]?.groups?.[0];
-  if (!group) throw new Error('No se encontró el grupo "Trafico 2026" en el board');
+  if (!group) throw new Error('No se encontró el grupo "TRÁFICO 2026" en el board');
   return group.items_page.items as { id: string; name: string; column_values: { id: string; text: string | null }[] }[];
 }
 
@@ -109,8 +110,8 @@ export async function POST(req: NextRequest) {
       const bl = derivarBL(item);
       const agenteNombre = colText(cv, COL.AGENTE);
       const montoText = colText(cv, COL.COSTO_FLETE);
-      const estatusTexto = colText(cv, COL.ESTATUS_PAGO).toLowerCase();
-      const cotizacionesText = colText(cv, COL.COTIZACIONES);
+      const pagoFinalMarcado = colText(cv, COL.PAGO_FINAL) === 'v';
+      const cotizacionesText = colText(cv, COL.FACTURA_FINAL) || colText(cv, COL.COTIZACION_FLETE);
 
       if (!montoText || !agenteNombre) { sinMonto++; continue; } // sin costo de flete todavía — nada que sincronizar
 
@@ -135,11 +136,11 @@ export async function POST(req: NextRequest) {
           monto,
           moneda: 'USD',
         };
-        // Solo el estado "pagado" viene con autoridad de Monday — el resto de
-        // los estados (Pendiente/Próxima a vencer/etc.) los decide el motor
-        // del Agente de Administración según la fecha de vencimiento, no
-        // esta sync, para no pisar un estado que ya esté siendo trabajado.
-        if (estatusTexto.includes('pagad')) camposFactura.estado_pago = 'Pagada';
+        // Solo el checkbox "PAGO FINAL EMBARQUE" marcado viene con autoridad de Monday — el
+        // resto de los estados (Pendiente/Próxima a vencer/etc.) los decide el motor del
+        // Agente de Administración según la fecha de vencimiento, no esta sync, para no pisar
+        // un estado que ya esté siendo trabajado.
+        if (pagoFinalMarcado) camposFactura.estado_pago = 'Pagada';
 
         if (dryRun) {
           plan.push({ bl, agente: agenteNombre, monto, numeroFactura, agenteExistia: !!agente });
